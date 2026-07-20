@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlackBox AI — Face Detection &amp; Facial Sentiment Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Tokens ---------- */
+  :root{
+    --bg:#0b0e14;
+    --bg-alt:#0d111a;
+    --panel:#131826;
+    --panel-2:#171d2c;
+    --line:rgba(255,255,255,.09);
+    --line-strong:rgba(255,255,255,.18);
+    --text:#eef1f7;
+    --text-dim:#98a1b7;
+    --text-faint:#5b6478;
+    --cyan:#4fd1c5;
+    --cyan-dim:rgba(79,209,197,.14);
+
+    --happy:#ffc857;
+    --surprise:#ff8fb1;
+    --neutral:#9aa5b8;
+    --sad:#6fa8ff;
+    --fear:#b98cff;
+    --angry:#ff6b6b;
+    --disgust:#8fbf6b;
+
+    --live:#ffc857;
+    --radius:14px;
+    --font-d:'Space Grotesk',sans-serif;
+    --font-b:'Inter',sans-serif;
+    --font-m:'JetBrains Mono',monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-b);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 85% -10%, rgba(79,209,197,.08), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 5% 10%, rgba(185,140,255,.06), transparent 60%);
+    pointer-events:none;z-index:0;
+  }
+  img,svg{display:block;max-width:100%;}
+  a{color:inherit;text-decoration:none;}
+  ul{list-style:none;}
+  section{position:relative;z-index:1;}
+  ::selection{background:var(--cyan);color:#06110f;}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px;}
+
+  .wrap{max-width:1160px;margin:0 auto;padding:0 28px;}
+  .eyebrow{
+    font-family:var(--font-m);
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--cyan);display:flex;align-items:center;gap:10px;margin-bottom:16px;
+  }
+  .eyebrow::before{content:"";width:16px;height:1.5px;background:var(--cyan);display:inline-block;}
+  h1,h2,h3{font-family:var(--font-d);font-weight:600;letter-spacing:-.01em;color:var(--text);}
+  h2{font-size:clamp(28px,4vw,42px);margin-bottom:14px;}
+  .lede{color:var(--text-dim);max-width:560px;font-size:16.5px;}
+  .section-head{margin-bottom:56px;}
+  .section-pad{padding:110px 0;}
+  @media(max-width:720px){.section-pad{padding:72px 0;}}
+
+  /* ---------- Corner frame motif ---------- */
+  .frame{position:relative;}
+  .frame .corner{position:absolute;width:16px;height:16px;pointer-events:none;}
+  .frame .corner.tl{top:-1px;left:-1px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+  .frame .corner.tr{top:-1px;right:-1px;border-top:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+  .frame .corner.bl{bottom:-1px;left:-1px;border-bottom:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+  .frame .corner.br{bottom:-1px;right:-1px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+
+  /* ---------- Nav ---------- */
+  nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(11,14,20,.72);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:68px;}
+  .logo{display:flex;align-items:center;gap:12px;font-family:var(--font-d);font-weight:600;font-size:17px;letter-spacing:.01em;}
+  .logo-img{height:40px;width:auto;display:block;filter:drop-shadow(0 0 10px rgba(79,209,197,.18));}
+  @media(max-width:760px){.logo-img{height:34px;}}
+  .navlinks{display:flex;gap:32px;font-size:14px;color:var(--text-dim);}
+  .navlinks a{transition:color .15s;}
+  .navlinks a:hover{color:var(--text);}
+  @media(max-width:760px){.navlinks{display:none;}}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--font-m);font-size:13px;letter-spacing:.03em;
+    padding:13px 22px;border-radius:8px;border:1px solid var(--line-strong);
+    transition:border-color .15s, transform .15s, background .15s;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn-primary{background:var(--cyan);color:#06110f;border-color:var(--cyan);}
+  .btn-primary:hover{background:#69ddd2;}
+  .btn-ghost{color:var(--text);}
+  .btn-ghost:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:64px 0 100px;}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;}
+  @media(max-width:900px){.hero .wrap{grid-template-columns:1fr;}}
+  .hero h1{font-size:clamp(34px,5.2vw,56px);line-height:1.08;margin:16px 0 20px;}
+  .hero h1 em{font-style:normal;color:var(--cyan);}
+  .hero-cta{display:flex;gap:14px;margin-top:32px;flex-wrap:wrap;}
+  .quickfacts{display:flex;gap:28px;margin-top:52px;flex-wrap:wrap;}
+  .quickfacts div{font-family:var(--font-m);}
+  .quickfacts .num{font-size:22px;color:var(--text);display:block;}
+  .quickfacts .lab{font-size:11.5px;color:var(--text-faint);letter-spacing:.06em;text-transform:uppercase;}
+
+  /* hero visual */
+  .visual{position:relative;aspect-ratio:1/1.08;}
+  .visual .frame{
+    position:absolute;inset:0;
+    background:linear-gradient(180deg,var(--panel),var(--bg-alt));
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .scanline{
+    position:absolute;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+    box-shadow:0 0 16px 2px var(--cyan);
+    animation:scan 3.4s ease-in-out infinite;
+    opacity:.8;
+  }
+  @keyframes scan{
+    0%{top:6%;} 50%{top:92%;} 100%{top:6%;}
+  }
+  .facebox{
+    position:absolute;stroke:var(--live);stroke-width:2;fill:none;
+    stroke-dasharray:900; stroke-dashoffset:900;
+    animation:draw 1.4s .3s ease-out forwards;
+    transition:stroke .5s;
+  }
+  @keyframes draw{to{stroke-dashoffset:0;}}
+  .readout{
+    position:absolute;left:20px;bottom:20px;right:20px;
+    background:rgba(11,14,20,.82);
+    border:1px solid var(--line-strong);
+    border-radius:10px;
+    padding:16px 18px;
+    font-family:var(--font-m);font-size:12.5px;
+    backdrop-filter:blur(6px);
+  }
+  .readout .row{display:flex;justify-content:space-between;padding:3px 0;color:var(--text-dim);}
+  .readout .row b{color:var(--text);font-weight:500;}
+  .readout .emo{color:var(--live);font-weight:600;transition:color .5s;}
+  .readout .tag{
+    display:inline-block;margin-top:10px;padding:4px 10px;border-radius:100px;
+    font-size:11px;letter-spacing:.05em;
+    background:color-mix(in srgb, var(--live) 18%, transparent);
+    color:var(--live);border:1px solid color-mix(in srgb, var(--live) 45%, transparent);
+    transition:all .5s;
+  }
+  .badge-label{
+    position:absolute;top:16px;left:16px;font-family:var(--font-m);font-size:11px;
+    color:var(--live);letter-spacing:.05em;transition:color .5s;
+  }
+
+  /* emotion legend */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:var(--font-m);font-size:11.5px;color:var(--text-dim);
+    border:1px solid var(--line);padding:6px 11px;border-radius:100px;
+  }
+  .chip i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  /* ---------- About ---------- */
+  .members{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;}
+  @media(max-width:980px){.members{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:640px){.members{grid-template-columns:repeat(2,1fr);}}
+  .member{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 18px;position:relative;
+  }
+  .avatar{
+    width:52px;height:52px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-d);font-weight:600;font-size:16px;
+    color:#06110f;margin-bottom:16px;
+  }
+  .member h3{font-size:15.5px;margin-bottom:2px;}
+  .role{font-family:var(--font-m);font-size:11px;color:var(--cyan);letter-spacing:.03em;margin-bottom:10px;display:block;}
+  .member p{font-size:13.3px;color:var(--text-dim);}
+
+  /* ---------- Services ---------- */
+  .services{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:820px){.services{grid-template-columns:1fr;}}
+  .svc{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:34px 30px;
+  }
+  .svc .step{
+    font-family:var(--font-m);font-size:11.5px;color:var(--cyan);
+    letter-spacing:.08em;margin-bottom:14px;display:block;
+  }
+  .svc h3{font-size:22px;margin-bottom:12px;}
+  .svc p{color:var(--text-dim);font-size:14.5px;margin-bottom:20px;}
+  .usecases{display:flex;flex-direction:column;gap:8px;}
+  .usecases li{
+    font-size:13px;color:var(--text-dim);
+    padding-left:18px;position:relative;
+  }
+  .usecases li::before{
+    content:"";position:absolute;left:0;top:8px;width:8px;height:1.5px;background:var(--cyan);
+  }
+  .svc-icon{width:38px;height:38px;margin-bottom:20px;}
+
+  /* ---------- Pipeline flow ---------- */
+  .flow{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:stretch;margin-bottom:90px;
+  }
+  @media(max-width:900px){.flow{grid-template-columns:1fr;gap:14px;}}
+  .flow-step{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:20px 16px;text-align:center;position:relative;
+  }
+  .flow-step .k{font-family:var(--font-m);font-size:10.5px;color:var(--text-faint);letter-spacing:.06em;display:block;margin-bottom:8px;}
+  .flow-step .v{font-family:var(--font-d);font-size:14.5px;font-weight:600;}
+  .flow-arrow{display:flex;align-items:center;justify-content:center;color:var(--cyan);font-family:var(--font-m);font-size:16px;}
+  @media(max-width:900px){.flow-arrow{transform:rotate(90deg);}}
+
+  .timeline{position:relative;padding-left:36px;}
+  .timeline::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:1.5px;background:var(--line-strong);}
+  .week{position:relative;padding-bottom:44px;}
+  .week:last-child{padding-bottom:0;}
+  .week::before{
+    content:attr(data-n);
+    position:absolute;left:-36px;top:0;width:20px;height:20px;border-radius:50%;
+    background:var(--bg);border:1.5px solid var(--cyan);color:var(--cyan);
+    font-family:var(--font-m);font-size:10px;display:flex;align-items:center;justify-content:center;
+  }
+  .week h3{font-size:17px;margin-bottom:6px;}
+  .week .wk-label{font-family:var(--font-m);font-size:11px;color:var(--text-faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:block;}
+  .week ul{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .week li{font-size:13.5px;color:var(--text-dim);padding-left:16px;position:relative;}
+  .week li::before{content:"–";position:absolute;left:0;color:var(--text-faint);}
+
+  /* ---------- Results ---------- */
+  .note{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--font-m);font-size:11.5px;color:var(--text-faint);
+    border:1px dashed var(--line-strong);padding:8px 14px;border-radius:8px;margin-bottom:44px;
+  }
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:40px;}
+  @media(max-width:760px){.metrics{grid-template-columns:1fr;}}
+  .metric{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;}
+  .metric .m-name{font-family:var(--font-m);font-size:11.5px;color:var(--text-faint);letter-spacing:.05em;text-transform:uppercase;}
+  .metric .m-val{font-family:var(--font-d);font-size:32px;margin:8px 0 4px;}
+  .metric .m-tag{font-size:12.5px;color:var(--text-dim);}
+  .metric.highlight{border-color:var(--cyan);background:linear-gradient(180deg,var(--panel),var(--cyan-dim));}
+  .metric.highlight .m-val{color:var(--cyan);}
+
+  .chart-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;}
+  @media(max-width:860px){.chart-grid{grid-template-columns:1fr;}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;}
+  .panel h4{font-size:14px;font-weight:500;margin-bottom:4px;font-family:var(--font-d);}
+  .panel .sub{font-size:12px;color:var(--text-faint);margin-bottom:18px;}
+  .legend-mini{display:flex;gap:16px;font-family:var(--font-m);font-size:11px;color:var(--text-dim);margin-top:12px;}
+  .legend-mini span{display:inline-flex;align-items:center;gap:6px;}
+  .legend-mini i{width:14px;height:2px;display:inline-block;}
+
+  .cm-table{width:100%;border-collapse:collapse;font-family:var(--font-m);font-size:9.5px;}
+  .cm-table th{color:var(--text-faint);font-weight:400;padding:4px;text-align:center;}
+  .cm-table td{padding:0;text-align:center;}
+  .cm-cell{width:100%;height:26px;display:flex;align-items:center;justify-content:center;color:#06110f;border-radius:3px;font-weight:600;}
+  .cm-row-label{color:var(--text-faint);font-size:9.5px;padding-right:6px;white-space:nowrap;}
+
+  /* ---------- Contact ---------- */
+  .contact-box{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:56px;display:flex;justify-content:space-between;align-items:center;gap:40px;flex-wrap:wrap;
+  }
+  .contact-links{display:flex;gap:14px;flex-wrap:wrap;}
+  footer{padding:32px 0;border-top:1px solid var(--line);}
+  footer .wrap{display:flex;justify-content:space-between;color:var(--text-faint);font-size:12.5px;flex-wrap:wrap;gap:10px;font-family:var(--font-m);}
+
+  /* ---------- Reveal on scroll ---------- */
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1;transform:translateY(0);}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    .scanline,.facebox,.reveal{animation:none !important;transition:none !important;opacity:1 !important;transform:none !important;stroke-dashoffset:0 !important;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="#top" class="logo">
+      <img class="logo-img" src="1784532039356_678776851434102462_g7014683874133312652_df252f8809e856c5ccac3699b033e603.jpg" alt="BlackBox AI logo">
+    </a>
+    <ul class="navlinks">
+      <li><a href="#top">Trang chủ</a></li>
+      <li><a href="#about">Về nhóm</a></li>
+      <li><a href="#services">Dịch vụ</a></li>
+      <li><a href="#pipeline">Quy trình</a></li>
+      <li><a href="#results">Kết quả</a></li>
+      <li><a href="#contact">Liên hệ</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">AI PROJECT · FACE DETECTION + FACIAL EMOTION</div>
+      <h1>Một khung hình,<br>một khuôn mặt,<br><em>một cảm xúc</em> được gọi tên.</h1>
+      <p class="lede">BlackBox AI là nhóm 5 sinh viên AI xây dựng pipeline nhận diện khuôn mặt và phân tích cảm xúc trực tiếp từ hình ảnh — không dùng văn bản, không suy đoán, chỉ đọc những gì gương mặt thể hiện.</p>
+      <div class="hero-cta">
+        <a href="#pipeline" class="btn btn-primary">Xem quy trình kỹ thuật</a>
+        <a href="#results" class="btn btn-ghost">Xem kết quả</a>
+      </div>
+      <div class="quickfacts">
+        <div><span class="num">2</span><span class="lab">mô hình</span></div>
+        <div><span class="num">7</span><span class="lab">lớp cảm xúc</span></div>
+        <div><span class="num">3</span><span class="lab">tuần thực hiện</span></div>
+        <div><span class="num">GPU</span><span class="lab">Kaggle miễn phí</span></div>
+      </div>
+      <div class="legend">
+        <span class="chip"><i style="background:var(--happy)"></i>Happy</span>
+        <span class="chip"><i style="background:var(--surprise)"></i>Surprise</span>
+        <span class="chip"><i style="background:var(--neutral)"></i>Neutral</span>
+        <span class="chip"><i style="background:var(--sad)"></i>Sad</span>
+        <span class="chip"><i style="background:var(--fear)"></i>Fear</span>
+        <span class="chip"><i style="background:var(--angry)"></i>Angry</span>
+        <span class="chip"><i style="background:var(--disgust)"></i>Disgust</span>
+      </div>
+    </div>
+
+    <div class="visual">
+      <div class="frame">
+        <div class="scanline"></div>
+        <span class="badge-label" id="badgeLabel">FACE_01 · CONF 0.97</span>
+        <svg viewBox="0 0 400 460" width="100%" height="100%" style="position:absolute;inset:0;">
+          <!-- head silhouette -->
+          <path d="M200 96c48 0 78 40 78 92 0 30-8 54-20 72 24 10 62 30 62 58v18H80v-18c0-28 38-48 62-58-12-18-20-42-20-72 0-52 30-92 78-92z"
+                fill="#1b2233" opacity="0.9"/>
+          <!-- landmarks -->
+          <circle cx="172" cy="176" r="4" fill="var(--cyan)"/>
+          <circle cx="228" cy="176" r="4" fill="var(--cyan)"/>
+          <circle cx="200" cy="206" r="4" fill="var(--cyan)"/>
+          <circle cx="178" cy="238" r="4" fill="var(--cyan)"/>
+          <circle cx="222" cy="238" r="4" fill="var(--cyan)"/>
+          <g stroke="var(--cyan)" stroke-width="1" opacity="0.5">
+            <line x1="172" y1="176" x2="200" y2="206"/>
+            <line x1="228" y1="176" x2="200" y2="206"/>
+            <line x1="178" y1="238" x2="200" y2="206"/>
+            <line x1="222" y1="238" x2="200" y2="206"/>
+            <line x1="178" y1="238" x2="222" y2="238"/>
+          </g>
+          <!-- bounding box -->
+          <rect class="facebox" id="faceBox" x="66" y="60" width="268" height="330" rx="6" pathLength="900"/>
+        </svg>
+        <div class="readout">
+          <div class="row"><span>DETECT</span><b>face_01</b></div>
+          <div class="row"><span>BOX</span><b>[66, 60, 334, 390]</b></div>
+          <div class="row"><span>EMOTION</span><b class="emo" id="emoText">HAPPY</b></div>
+          <div class="row"><span>SCORE</span><b id="scoreText">92%</b></div>
+          <span class="tag" id="sentTag">SENTIMENT · POSITIVE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section class="section-pad" id="about">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">VỀ NHÓM</div>
+      <h2>5 người, một pipeline</h2>
+      <p class="lede">Mỗi thành viên phụ trách một mắt xích — từ dữ liệu, mô hình, đến giao diện và kiểm thử.</p>
+    </div>
+    <div class="members">
+      <div class="member reveal">
+        <div class="avatar" style="background:var(--happy)">MA</div>
+        <h3>Nguyễn Minh Anh</h3>
+        <span class="role">Trưởng nhóm / PM</span>
+        <p>Giữ nhịp tiến độ, tổng hợp báo cáo và là người thuyết trình chính.</p>
+      </div>
+      <div class="member reveal">
+        <div class="avatar" style="background:var(--sad)">ĐH</div>
+        <h3>Trần Đức Huy</h3>
+        <span class="role">AI Eng. — Data &amp; Detection</span>
+        <p>Xây data pipeline, làm EDA, tích hợp MTCNN để định vị khuôn mặt.</p>
+      </div>
+      <div class="member reveal">
+        <div class="avatar" style="background:var(--surprise)">BN</div>
+        <h3>Lê Thị Bảo Ngọc</h3>
+        <span class="role">AI Eng. — Emotion Model</span>
+        <p>Huấn luyện CNN baseline, fine-tune MobileNetV2 để phân loại cảm xúc.</p>
+      </div>
+      <div class="member reveal">
+        <div class="avatar" style="background:var(--fear)">QB</div>
+        <h3>Phạm Quốc Bảo</h3>
+        <span class="role">Frontend / UI Developer</span>
+        <p>Biến pipeline kỹ thuật thành một trang "How it works" dễ hiểu.</p>
+      </div>
+      <div class="member reveal">
+        <div class="avatar" style="background:var(--disgust)">HM</div>
+        <h3>Vũ Hà My</h3>
+        <span class="role">Content &amp; QA</span>
+        <p>Viết nội dung, thiết kế logo, kiểm thử toàn bộ trải nghiệm.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SERVICES ================= -->
+<section class="section-pad" id="services" style="background:var(--bg-alt);">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">DỊCH VỤ</div>
+      <h2>Một pipeline, hai bước</h2>
+      <p class="lede">Face Detection định vị khuôn mặt; Facial Sentiment Analysis đọc cảm xúc trên khuôn mặt đó. Hai bước nối liền thành một luồng xử lý duy nhất.</p>
+    </div>
+    <div class="services">
+      <div class="svc reveal">
+        <svg class="svc-icon" viewBox="0 0 40 40" fill="none"><rect x="4" y="4" width="10" height="10" stroke="var(--cyan)" stroke-width="2"/><rect x="26" y="4" width="10" height="10" stroke="var(--cyan)" stroke-width="2" opacity="0.35"/><rect x="4" y="26" width="10" height="10" stroke="var(--cyan)" stroke-width="2" opacity="0.35"/><rect x="26" y="26" width="10" height="10" stroke="var(--cyan)" stroke-width="2" opacity="0.35"/></svg>
+        <span class="step">BƯỚC 01 — FACE DETECTION</span>
+        <h3>Định vị khuôn mặt</h3>
+        <p>Xác định bounding box và landmark (mắt, mũi, miệng) của khuôn mặt trong ảnh hoặc luồng webcam, làm đầu vào chuẩn cho bước phân tích cảm xúc.</p>
+        <ul class="usecases">
+          <li>Chấm điểm trải nghiệm khách hàng qua camera cửa hàng</li>
+          <li>Định vị khuôn mặt học sinh trong lớp học</li>
+          <li>Tiền xử lý ảnh cho các bài kiểm thử UX</li>
+        </ul>
+      </div>
+      <div class="svc reveal">
+        <svg class="svc-icon" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="16" stroke="var(--cyan)" stroke-width="2"/><circle cx="14" cy="17" r="1.6" fill="var(--cyan)"/><circle cx="26" cy="17" r="1.6" fill="var(--cyan)"/><path d="M13 25c3 3 11 3 14 0" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="step">BƯỚC 02 — FACIAL SENTIMENT ANALYSIS</span>
+        <h3>Phân loại cảm xúc</h3>
+        <p>Phân loại khuôn mặt đã crop vào 7 lớp cảm xúc chuẩn FER, sau đó gộp thành 3 nhóm sentiment: Tích cực / Tiêu cực / Trung tính.</p>
+        <ul class="usecases">
+          <li>Giám sát cảm xúc lớp học theo thời gian thực</li>
+          <li>Đo mức hài lòng khách hàng tại điểm bán</li>
+          <li>Kiểm thử phản ứng người dùng (UX testing)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PIPELINE / HOW IT WORKS ================= -->
+<section class="section-pad" id="pipeline">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">QUY TRÌNH KỸ THUẬT</div>
+      <h2>Từ ảnh thô đến nhãn cảm xúc</h2>
+      <p class="lede">Toàn bộ pipeline gồm 5 mắt xích, thực hiện tuần tự trên mỗi ảnh đầu vào.</p>
+    </div>
+
+    <div class="flow reveal">
+      <div class="flow-step"><span class="k">INPUT</span><span class="v">Ảnh / Webcam</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="k">BƯỚC 1</span><span class="v">Face Detection</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="k">XỬ LÝ</span><span class="v">Crop + Align</span></div>
+    </div>
+    <div class="flow reveal" style="margin-top:-70px;">
+      <div class="flow-step"><span class="k">BƯỚC 2</span><span class="v">Emotion Classification</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="k">OUTPUT</span><span class="v">7 lớp cảm xúc</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="k">MAP</span><span class="v">3 nhóm Sentiment</span></div>
+    </div>
+
+    <div class="timeline">
+      <div class="week reveal" data-n="1">
+        <span class="wk-label">Tuần 1</span>
+        <h3>Data Pipeline &amp; Tiền xử lý</h3>
+        <ul>
+          <li>Thu thập FER2013 từ Kaggle, kiểm tra license và cấu trúc thư mục</li>
+          <li>EDA — kiểm tra mất cân bằng lớp (đặc biệt lớp "disgust" rất ít)</li>
+          <li>Crop + align khuôn mặt bằng MTCNN, chuẩn hoá kích thước ảnh</li>
+          <li>Augmentation (flip, xoay ±15°, chỉnh sáng/tương phản) và chia tập 70/15/15</li>
+        </ul>
+      </div>
+      <div class="week reveal" data-n="2">
+        <span class="wk-label">Tuần 2</span>
+        <h3>Training &amp; Đánh giá</h3>
+        <ul>
+          <li>Tích hợp face detector pretrained, viết wrapper detect + crop</li>
+          <li>Train CNN baseline (3–4 lớp Conv) làm mốc so sánh</li>
+          <li>Fine-tune MobileNetV2 trên Kaggle GPU (~30h/tuần), theo dõi loss/accuracy</li>
+          <li>Đánh giá bằng Accuracy, Precision/Recall/F1 và Confusion Matrix</li>
+        </ul>
+      </div>
+      <div class="week reveal" data-n="3">
+        <span class="wk-label">Tuần 3</span>
+        <h3>Tích hợp Website &amp; Hoàn thiện</h3>
+        <ul>
+          <li>Dựng trang "How it works" thể hiện trực quan toàn bộ pipeline</li>
+          <li>(Tuỳ chọn) Đóng gói API demo bằng Flask/FastAPI</li>
+          <li>Kiểm thử với ảnh thật của thành viên để đánh giá khả năng tổng quát hoá</li>
+          <li>Deploy website (GitHub Pages/Vercel) và API demo (Render/Railway)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section class="section-pad" id="results" style="background:var(--bg-alt);">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">KẾT QUẢ</div>
+      <h2>Số liệu mục tiêu &amp; minh hoạ</h2>
+      <p class="lede">Nhóm chưa hoàn tất training — các biểu đồ dưới đây minh hoạ định dạng báo cáo, sẽ được thay bằng số liệu thật sau tuần 2.</p>
+      <div class="note">⚠ DEMO DATA — sẽ cập nhật sau khi train xong</div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric reveal">
+        <span class="m-name">CNN Baseline</span>
+        <div class="m-val">60–65%</div>
+        <span class="m-tag">Accuracy tham khảo trên FER2013</span>
+      </div>
+      <div class="metric highlight reveal">
+        <span class="m-name">MobileNetV2 (khuyến nghị)</span>
+        <div class="m-val">68–72%</div>
+        <span class="m-tag">Transfer learning, model chính thức</span>
+      </div>
+      <div class="metric reveal">
+        <span class="m-name">EfficientNet-B0 (tuỳ chọn)</span>
+        <div class="m-val">70–73%</div>
+        <span class="m-tag">So sánh thêm nếu còn thời gian</span>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="panel reveal">
+        <h4>Accuracy theo epoch</h4>
+        <span class="sub">Minh hoạ — số liệu mẫu</span>
+        <svg viewBox="0 0 480 200" width="100%" height="200">
+          <g stroke="var(--line)" stroke-width="1">
+            <line x1="30" y1="10" x2="30" y2="170"/>
+            <line x1="30" y1="170" x2="470" y2="170"/>
+          </g>
+          <polyline points="30,150 90,120 150,95 210,80 270,68 330,58 390,52 450,48" fill="none" stroke="var(--cyan)" stroke-width="2.5"/>
+          <polyline points="30,155 90,132 150,112 210,100 270,92 330,88 390,86 450,85" fill="none" stroke="var(--text-faint)" stroke-width="2" stroke-dasharray="4 4"/>
+        </svg>
+        <div class="legend-mini">
+          <span><i style="background:var(--cyan)"></i>Train</span>
+          <span><i style="background:var(--text-faint)"></i>Validation</span>
+        </div>
+      </div>
+
+      <div class="panel reveal">
+        <h4>Confusion Matrix</h4>
+        <span class="sub">Minh hoạ 7 lớp cảm xúc</span>
+        <table class="cm-table" id="cmTable"></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section class="section-pad" id="contact">
+  <div class="wrap">
+    <div class="contact-box reveal">
+      <div>
+        <div class="eyebrow">LIÊN HỆ</div>
+        <h2 style="margin-bottom:6px;">Trao đổi với BlackBox AI</h2>
+        <p class="lede">Góp ý, hợp tác hoặc hỏi về đồ án — tụi mình luôn sẵn sàng phản hồi.</p>
+      </div>
+      <div class="contact-links">
+        <a href="mailto:hello@blackbox.ai" class="btn btn-primary">hello@blackbox.ai</a>
+        <a href="https://github.com/blackbox-ai" class="btn btn-ghost" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 BLACKBOX AI · ĐỒ ÁN NHÓM AI</span>
+    <span>FACE DETECTION + FACIAL SENTIMENT ANALYSIS</span>
+  </div>
+</footer>
+
+<script>
+  // ---------- Emotion cycle in hero readout ----------
+  const emotions = [
+    {name:'HAPPY', score:'92%', sentiment:'POSITIVE', color:'#ffc857'},
+    {name:'NEUTRAL', score:'81%', sentiment:'NEUTRAL', color:'#9aa5b8'},
+    {name:'SURPRISE', score:'76%', sentiment:'POSITIVE', color:'#ff8fb1'},
+    {name:'SAD', score:'69%', sentiment:'NEGATIVE', color:'#6fa8ff'},
+  ];
+  let ei = 0;
+  const emoText = document.getElementById('emoText');
+  const scoreText = document.getElementById('scoreText');
+  const sentTag = document.getElementById('sentTag');
+  const badgeLabel = document.getElementById('badgeLabel');
+  const faceBox = document.getElementById('faceBox');
+  const root = document.documentElement;
+
+  function applyEmotion(e){
+    if(emoText) emoText.textContent = e.name;
+    if(scoreText) scoreText.textContent = e.score;
+    if(sentTag) sentTag.textContent = 'SENTIMENT · ' + e.sentiment;
+    if(badgeLabel) badgeLabel.textContent = 'FACE_01 · CONF 0.97';
+    root.style.setProperty('--live', e.color);
+  }
+  applyEmotion(emotions[0]);
+
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    setInterval(()=>{
+      ei = (ei+1) % emotions.length;
+      applyEmotion(emotions[ei]);
+    }, 3400);
+  }
+
+  // ---------- Confusion matrix (illustrative) ----------
+  const labels = ['Angry','Disgust','Fear','Happy','Sad','Surprise','Neutral'];
+  const matrix = [
+    [72,3,7,2,10,2,4],
+    [8,64,6,4,10,2,6],
+    [9,4,63,3,13,5,3],
+    [1,1,2,90,2,3,1],
+    [11,3,14,3,60,2,7],
+    [2,1,6,6,2,79,4],
+    [5,2,4,4,8,3,74],
+  ];
+  function cellColor(v){
+    // interpolate from panel color to cyan based on value 0-100
+    const t = Math.min(v/95,1);
+    const r = Math.round(23 + t*(79-23));
+    const g = Math.round(29 + t*(209-29));
+    const b = Math.round(44 + t*(197-44));
+    return `rgb(${r},${g},${b})`;
+  }
+  const cm = document.getElementById('cmTable');
+  if(cm){
+    let html = '<tr><th></th>' + labels.map(l=>`<th>${l.slice(0,3)}</th>`).join('') + '</tr>';
+    matrix.forEach((row,i)=>{
+      html += `<tr><td class="cm-row-label">${labels[i].slice(0,3)}</td>` +
+        row.map(v=>`<td><div class="cm-cell" style="background:${cellColor(v)}">${v}</div></td>`).join('') +
+        '</tr>';
+    });
+    cm.innerHTML = html;
+  }
+
+  // ---------- Reveal on scroll ----------
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, {threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
