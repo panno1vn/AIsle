@@ -8,12 +8,11 @@
 
 | Tên · Email · Student ID · Vai trò |
 |---|
-| _Điền tên, email, MSSV, vai trò của thành viên 1_ |
-| _Điền tên, email, MSSV, vai trò của thành viên 2_ |
-| _Điền tên, email, MSSV, vai trò của thành viên 3_ |
-| _Điền tên, email, MSSV, vai trò của thành viên 4_ |
+| Phan Trung Kiên · n23dcat038@student.ptithcm.edu.vn · N23DCAT038 · Team Lead |
+| Đàng Hải Đăng · n24dece007@student.ptithcm.edu.vn · N24DECE007 · AI / Simulation |
+| Trần Đăng Khôi · n23dcat036@student.ptithcm.edu.vn · N23DCAT036 · UI/UX & Backend / WebApp |
 
-> Mình chưa tự điền tên vì workspace không có dữ liệu thành viên để xác nhận. Chỉ cần thay 4 dòng trên bằng thông tin thật là bảng sẽ khớp format giảng viên yêu cầu.
+> Bảng này đã được điền theo thông tin bạn gửi. Nếu muốn đổi lại cách chia vai trò cho sát thực tế hơn, mình có thể chỉnh tiếp trong lần sau.
 
 ---
 
