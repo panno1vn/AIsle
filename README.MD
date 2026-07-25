@@ -12,7 +12,6 @@
 | Đàng Hải Đăng · n24dece007@student.ptithcm.edu.vn · N24DECE007 · UI/UX & Backend / WebApp |
 | Trần Đăng Khôi · n23dcat036@student.ptithcm.edu.vn · N23DCAT036 · AI / Simulation |
 
-> Bảng này đã được điền theo thông tin bạn gửi. Nếu muốn đổi lại cách chia vai trò cho sát thực tế hơn, mình có thể chỉnh tiếp trong lần sau.
 
 ---
 
