@@ -269,7 +269,7 @@
 <header>
   <div class="nav">
     <a class="logo" href="#top" aria-label="AIsle home">
-      <img src="../identity/logo.jpg" alt="AIsle logo">
+      <img id="brand-logo" src="/Brand/identity/logo.jpg" data-local="../identity/logo.jpg" alt="AIsle logo">
       <div class="logo-copy">
         <div class="brand-name">AIsle</div>
         <div class="brand-tag mono">Digital Twin</div>
@@ -475,6 +475,19 @@
   <p>Chúng tôi muốn trình bày chi tiết hơn về AIsle và bàn về khả năng hợp tác.</p>
   <a class="btn-primary" href="mailto:hello@aisle-project.dev">Liên hệ đội dự án</a>
 </section>
+
+<script>
+  (function () {
+    var logo = document.getElementById('brand-logo');
+    if (!logo) return;
+    logo.addEventListener('error', function () {
+      var localSrc = logo.getAttribute('data-local');
+      if (localSrc && logo.getAttribute('src') !== localSrc) {
+        logo.src = localSrc;
+      }
+    });
+  })();
+</script>
 
 <footer class="wrap">
   <div class="mono">AIsle — Digital Twin cho Cửa hàng Tiện lợi</div>
