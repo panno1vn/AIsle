@@ -1,0 +1,25 @@
+streamlit
+streamlit-drawable-canvas
+plotly
+pandas
+numpy
+shapely
+matplotlib
+pytest
+*** Add File: e:\AIsle\app\Home.py
+import streamlit as st
+
+st.set_page_config(page_title="AIsle — Store Simulator", layout="wide")
+
+st.title("AIsle — Store Simulator")
+st.caption("Công cụ đánh giá layout cửa hàng bằng mô phỏng — không tự tối ưu, không xếp hạng.")
+
+st.markdown("""
+Chọn màn hình bên sidebar:
+
+1. **Layout Designer** — vẽ zone polygon cho cửa hàng
+2. **Catalog Manager** — nhập danh sách sản phẩm *(đang xây)*
+3. **Cấu hình & Chạy** — cấu hình mô phỏng và chạy *(đang xây)*
+4. **Kết quả & Replay** — xem số liệu và replay NPC di chuyển
+5. **Lịch sử** — so sánh các lần chạy trước *(đang xây)*
+""")

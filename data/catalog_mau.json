@@ -1,0 +1,12 @@
+{
+  "catalog": [
+    { "product_id": "p001", "name": "Coca-Cola",       "category": "beverage", "zone": "Beverage", "price": 12000 },
+    { "product_id": "p002", "name": "Trà xanh không độ", "category": "beverage", "zone": "Beverage", "price": 10000 },
+    { "product_id": "p003", "name": "Oreo",             "category": "snack",    "zone": "Snack",    "price": 18000 },
+    { "product_id": "p004", "name": "Snack khoai tây",  "category": "snack",    "zone": "Snack",    "price": 12000 },
+    { "product_id": "p005", "name": "Mì Hảo Hảo",       "category": "noodle",   "zone": "Noodle",   "price": 5000 },
+    { "product_id": "p006", "name": "Cơm nắm",          "category": "food",     "zone": "Food",     "price": 18000 },
+    { "product_id": "p007", "name": "Kẹo gum",          "category": "candy",    "zone": "Checkout", "price": 5000 },
+    { "product_id": "p008", "name": "Socola thanh",     "category": "candy",    "zone": "Checkout", "price": 7000 }
+  ]
+}

@@ -1,93 +1,57 @@
-# AIsle — Digital Twin cho Cửa hàng Tiện lợi
+# AIsle v2 — Kiến trúc Oxyte
 
-> Mô phỏng cửa hàng tiện lợi bằng AI agent (khách hàng + nhân viên) để thử layout và thái độ phục vụ tối ưu doanh thu trước khi áp dụng ngoài đời thật.
+Khung xương thật cho Tuần 1, theo `ke-hoach-poc-mo-phong-khach-hang.md` +
+`AIsle_ke_hoach_thuc_thi.md`. Đã thay hoàn toàn bản AIsle rule-based cũ.
 
----
+## Đã có (chạy được ngay)
 
-## 👥 Thành viên nhóm
+- `engine/models.py` — Genome/NPC/loaders (mục 2.3)
+- `engine/geometry.py` — zone polygon, centroid, khoảng cách (dùng Shapely)
+- `engine/behavior.py` — utility chọn zone + emotion update (mục 2.4)
+- `engine/purchase.py` — công thức xác suất mua, đã sửa theo A3, có 2 ca test
+- `data/*_mau.json` — 3 schema mẫu giả (layout, genome, catalog, trajectory)
+- `app/pages/1_Layout_Designer.py` — vẽ zone polygon bằng streamlit-drawable-canvas
+- `app/pages/4_Ket_qua_Replay.py` — replay + biểu đồ bằng Plotly, đọc trajectory mẫu
+- `tests/test_engine_basics.py` — 5 test cơ bản, đã chạy pass
 
-| Tên · Email · Student ID · Vai trò |
-|---|
-| Phan Trung Kiên · n23dcat038@student.ptithcm.edu.vn · N23DCAT038 · Team Lead |
-| Đàng Hải Đăng · n24dece007@student.ptithcm.edu.vn · N24DECE007 · UI/UX & Backend / WebApp |
-| Trần Đăng Khôi · n23dcat036@student.ptithcm.edu.vn · N23DCAT036 · AI / Simulation |
+## Chưa có (việc tiếp theo, xem lịch Tuần 1-2 trong AIsle_ke_hoach_thuc_thi.md)
 
+- `engine/spawn.py` — λ(t) + Poisson spawn (đã có pseudocode ở mục 10 bản đặc tả)
+- `population/generate.py` — sinh 150-200 NPC bằng crossover+mutation (Tuần 2)
+- `engine/simulation.py` — vòng lặp tick chính, nối tất cả lại (Tuần 3)
+- Màn 2 (Catalog Manager), Màn 3 (Cấu hình & Chạy), Màn 5 (Lịch sử)
 
----
-
-## 🧭 Tổng quan project
-
-AIsle dựng một **môi trường ảo mô phỏng cửa hàng tiện lợi**, trong đó AI đóng vai:
-
-- **Khách hàng** — persona đa dạng (ngân sách, mục đích ghé mua, tính cách), ra quyết định di chuyển và mua hàng trong cửa hàng ảo.
-- **Nhân viên** — các chiến lược thái độ phục vụ khác nhau, ảnh hưởng đến quyết định mua của khách.
-
-Mục tiêu là chạy hàng loạt mô phỏng với nhiều **layout gian hàng** và **kiểu phục vụ** khác nhau, rồi so sánh doanh thu / tỷ lệ chuyển đổi để tìm ra cấu hình tối ưu trước khi thử ngoài đời thật.
-
-📄 Bản trình bày sponsor nằm ở [Brand/pitch/index.html](Brand/pitch/index.html).
-
----
-
-## 🗂️ Cấu trúc repo
-
-```
-AIsle/
-├── Learn/
-│   ├── AI-Basic/
-│   ├── UI-UX/
-│   ├── Backend/
-│   └── Data/
-│
-├── Brand/
-│   ├── identity/
-│   ├── pitch/
-│   └── specs/
-│
-└── WebApp/
-    ├── frontend/
-    ├── backend/
-    └── docs/
-```
-
-### Learn/
-Chia theo 4 mảng thật của project: AI-Basic cho prompt/agent, UI-UX cho dashboard, Backend cho simulation engine, và Data cho metrics / kết quả mô phỏng.
-
-### Brand/
-Tách thành `identity/` cho logo / màu / brand guideline, `pitch/` cho bản trình bày sponsor, và `specs/` cho đặc tả kỹ thuật.
-
-### WebApp/
-Build xuyên suốt trong `frontend/`, `backend/`, `docs/` thay vì tách riêng theo tuần.
-
----
-
-## 📅 Nhật ký commit theo tuần
-
-> Commit đều mỗi tuần. Repo là bằng chứng tiến độ, không phải nơi để dồn việc cuối kỳ.
-
-| Tuần | Mốc cần đạt | Trạng thái |
-|---|---|---|
-| 1 | Dựng store layout (grid) + agent khách hàng đơn giản | ⬜ |
-| 2 | Cơ chế mô phỏng hàng loạt + tham số layout / thái độ | ⬜ |
-| 3 | So sánh nhiều layout + dashboard trực quan | ⬜ |
-| 4 | Hoàn thiện demo + tài liệu pitch cho sponsor | ⬜ |
-
-Cập nhật cột **Trạng thái** theo tuần: ⬜ chưa làm, 🟨 đang làm, ✅ xong.
-
----
-
-## 🚀 Bắt đầu
+## Cài đặt & chạy
 
 ```bash
-git clone <repo-url>
-cd AIsle
+python -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Sau đó bắt đầu lần lượt từ `WebApp/backend/` và `WebApp/frontend/`, còn `Brand/pitch/` dùng để giữ nội dung trình bày cho sponsor.
+Chạy test:
+```bash
+pytest tests/ -v
+```
 
----
+Kiểm tra công thức mua hàng (2 ca mẫu):
+```bash
+python -m engine.purchase
+```
 
-## 📌 Ghi chú
+Chạy dashboard:
+```bash
+streamlit run app/Home.py
+```
 
-- Mỗi thành viên nên có ít nhất 1 commit / tuần trong `Learn/` thuộc mảng của mình.
-- `Brand/pitch/` cần đi cùng tiến độ thật của `WebApp/`.
-- Kết quả trong `Data/` phải ghi rõ là dữ liệu mô phỏng, chưa phải dữ liệu thực tế.
+## Lưu ý kỹ thuật quan trọng
+
+**Định dạng dữ liệu polygon từ `streamlit-drawable-canvas`:** đã xác nhận qua mã nguồn/PR của thư viện polygon
+trả về dạng `path`: `[['M', x, y], ['L', x, y], ..., ['z']]`, không phải `points`.
+Hàm `_extract_polygon_points_meters()` trong `1_Layout_Designer.py` đã xử lý đúng
+định dạng này, có cộng offset `left/top` và nhân `scaleX/scaleY`. Nếu bản thư viện
+bạn cài trả về khác (có thể đổi giữa các phiên bản), dùng nút "🔧 Debug" trong
+sidebar Màn 1 để xem `json_data` thật và chỉnh lại hàm cho khớp.
+
+**Tất cả code trong `engine/` không phụ thuộc Streamlit** — có thể unit test độc
+lập, và tái sử dụng được nếu sau này đổi sang FastAPI/frontend khác.
