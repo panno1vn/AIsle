@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/Brand/pitch/index.html"
+      "destination": "/index.html"
     }
   ]
 }
