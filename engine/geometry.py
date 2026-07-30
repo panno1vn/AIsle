@@ -1,7 +1,4 @@
-"""
-Tiện ích hình học cho zone polygon tự do (mục 2.2, 5.3).
-Dùng Shapely — đã có trong stack chốt ở mục 0.4 điều kiện 3.
-"""
+"""Tiện ích hình học cho zone polygon tự do (mục 2.2, 5.3). Dùng Shapely."""
 from __future__ import annotations
 
 import math
@@ -24,7 +21,6 @@ def point_in_zone(layout: dict, zone_name: str, x: float, y: float) -> bool:
 
 
 def which_zone(layout: dict, x: float, y: float) -> str | None:
-    """NPC đang đứng ở toạ độ (x,y) thì đang ở zone nào? None nếu ở lối đi trống."""
     for zname in layout["zones"]:
         if point_in_zone(layout, zname, x, y):
             return zname

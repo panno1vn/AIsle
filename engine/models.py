@@ -2,9 +2,6 @@
 Data model cốt lõi cho kiến trúc Oxyte.
 Khớp đúng schema mục 2.3 (genome) và 2.4 (Emotion & Utility) trong
 ke-hoach-poc-mo-phong-khach-hang.md.
-
-Không còn liên quan gì tới bản AIsle rule-based cũ (products.json/simulate.py cũ)
-— đã bỏ hẳn theo quyết định của leader.
 """
 from __future__ import annotations
 
@@ -12,10 +9,6 @@ import json
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
-
-# ---------------------------------------------------------------------------
-# Genome (mục 2.3)
-# ---------------------------------------------------------------------------
 
 @dataclass
 class Need:
@@ -32,17 +25,17 @@ class Need:
 
 @dataclass
 class Emotion:
-    attractor: float       # điểm neo cảm xúc NPC hồi phục về
-    stability: float        # 0-1, càng cao càng ít dao động
-    dispersion: float       # 0-1, biên độ phản ứng với zone.base_valence
-    recovery_rate: float    # tốc độ hồi phục về attractor mỗi tick
+    attractor: float
+    stability: float
+    dispersion: float
+    recovery_rate: float
 
 
 @dataclass
 class Movement:
-    walk_speed: float             # m/s
-    dwell_patience: float          # số tick tối đa chịu dừng lại 1 zone
-    movement_steadiness: float     # 0-1, 1/(1+cv(v))
+    walk_speed: float
+    dwell_patience: float
+    movement_steadiness: float
 
 
 @dataclass
@@ -51,10 +44,6 @@ class Genome:
     emotion: Emotion
     movement: Movement
 
-
-# ---------------------------------------------------------------------------
-# State runtime (mục 2.3, phần "state")
-# ---------------------------------------------------------------------------
 
 Status = Literal["TRANSIT", "DWELL", "PURCHASED", "LEFT"]
 
@@ -106,17 +95,12 @@ class NPC:
         }
 
 
-# ---------------------------------------------------------------------------
-# Loaders — đọc data/*.json (mẫu giả hoặc thật, cùng 1 schema)
-# ---------------------------------------------------------------------------
-
 def load_json(path: str) -> dict:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
 def load_layout(path: str) -> dict:
-    """Trả về dict có 'zones' (mỗi zone có 'polygon') và 'spawn_rate_curve'."""
     return load_json(path)
 
 

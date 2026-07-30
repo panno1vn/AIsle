@@ -1,8 +1,4 @@
-"""
-Màn 2 — Catalog Manager (mục 5.4).
-Manager nhập catalog sản phẩm qua bảng inline-edit, form thêm từng món,
-hoặc import CSV/Excel.
-"""
+"""Màn 2 — Catalog Manager (mục 5.4)."""
 import os
 import sys
 
@@ -26,7 +22,6 @@ zones_da_ve = list(st.session_state.get("zones", {}).keys())
 if not zones_da_ve:
     st.warning("⚠️ Chưa có zone nào từ Màn 1. Sang Màn 1 vẽ layout trước, hoặc vẫn nhập catalog rồi gán zone sau.")
 
-# --- Bảng inline-edit: sửa/thêm/xoá dòng trực tiếp trên bảng ---
 st.subheader("Bảng sản phẩm")
 df = pd.DataFrame(st.session_state.catalog, columns=COLUMNS)
 edited = st.data_editor(
@@ -43,7 +38,6 @@ st.session_state.catalog = edited.to_dict("records")
 
 st.divider()
 
-# --- Form thêm 1 sản phẩm (mục 5.4) ---
 with st.expander("➕ Thêm sản phẩm (form nhập tay)"):
     with st.form("form_them_sp", clear_on_submit=True):
         c1, c2 = st.columns(2)
@@ -64,7 +58,6 @@ with st.expander("➕ Thêm sản phẩm (form nhập tay)"):
 
 st.divider()
 
-# --- Import CSV/Excel (mục 5.4) ---
 with st.expander("📁 Import file CSV/Excel"):
     file = st.file_uploader("Chọn file", type=["csv", "xlsx"])
     if file is not None:
@@ -103,7 +96,6 @@ with st.expander("📁 Import file CSV/Excel"):
 
 st.divider()
 
-# --- Validate trước khi chạy mô phỏng (mục 5.4: cảnh báo, không chặn cứng) ---
 zone_co_hang = {p.get("zone", "") for p in st.session_state.catalog}
 zone_thieu_hang = [z for z in zones_da_ve if z != "Entrance" and z not in zone_co_hang]
 if zone_thieu_hang:
