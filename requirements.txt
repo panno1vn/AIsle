@@ -1,7 +1,0 @@
-streamlit
-streamlit-drawable-canvas
-plotly
-pandas
-numpy
-shapely
-pytest
