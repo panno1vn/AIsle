@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Dictation Vocabulary Flashcards - Diseases</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-front-bg: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+            --card-back-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #f59e0b;
+            --success-color: #10b981;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #f472b6, #fb7185);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Stats & Progress */
+        .progress-container {
+            width: 100%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 16px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(to right, #ec4899, #f43f5e);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Flashcard Wrapper */
+        .flashcard-wrapper {
+            perspective: 1000px;
+            width: 100%;
+            height: 380px;
+            cursor: pointer;
+        }
+
+        /* Flashcard Inner */
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Card Sides */
+        .card-side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 24px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Front Side */
+        .card-front {
+            background: var(--card-front-bg);
+            color: white;
+        }
+
+        /* Back Side */
+        .card-back {
+            background: var(--card-back-bg);
+            transform: rotateY(180deg);
+            color: var(--text-primary);
+        }
+
+        /* Card Content Styling */
+        .word-badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px 16px;
+            border-radius: 30px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            backdrop-filter: blur(4px);
+        }
+
+        .card-back .word-badge {
+            background: rgba(236, 72, 153, 0.1);
+            color: #f472b6;
+            border: 1px solid rgba(236, 72, 153, 0.2);
+        }
+
+        .word-main {
+            font-size: 2.8rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .ipa {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .card-back .ipa {
+            color: var(--text-secondary);
+        }
+
+        .meaning-vietnamese {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            text-align: center;
+        }
+
+        .context-box {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .context-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        .card-action-hint {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-back .card-action-hint {
+            color: var(--text-secondary);
+        }
+
+        /* Sound Button */
+        .audio-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .card-back .audio-btn {
+            background: rgba(236, 72, 153, 0.1);
+            color: #f472b6;
+        }
+        
+        .card-back .audio-btn:hover {
+            background: rgba(236, 72, 153, 0.2);
+        }
+
+        /* Controls */
+        .controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 14px 28px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+
+        .mark-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .mark-btn.mastered {
+            color: var(--success-color);
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .mark-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Keyboard Hints */
+        .shortcuts {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        .shortcut-key {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Add custom word section */
+        .add-word-section {
+            width: 100%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: var(--shadow);
+            margin-top: 10px;
+        }
+
+        .add-word-section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #f472b6;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 480px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 480px) {
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, textarea {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #f472b6;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .submit-btn {
+            background: linear-gradient(to right, #ec4899, #f43f5e);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(236, 72, 153, 0.3);
+        }
+
+        /* Success Alert */
+        .alert {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+
+        .alert.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Daily Dictation Flashcards</h1>
+            <p>Học từ mới qua bài viết: <strong>37. Diseases</strong></p>
+        </header>
+
+        <!-- Progress bar -->
+        <div class="progress-container">
+            <div class="progress-info">
+                <span>Tiến trình học tập</span>
+                <span id="progress-text">0 / 0 từ</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- Card Container -->
+        <div class="flashcard-wrapper" id="card-wrapper">
+            <div class="flashcard" id="card">
+                <!-- Front Side -->
+                <div class="card-side card-front">
+                    <span class="word-badge">Từ vựng</span>
+                    <div style="text-align: center;">
+                        <div class="word-main" id="front-word">Loading...</div>
+                        <div class="ipa" id="front-ipa">Loading...</div>
+                    </div>
+                    <button class="audio-btn" id="speak-btn-front" onclick="speakCurrentWord(event)">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <div class="card-action-hint">
+                        <i class="fas fa-redo"></i> Click hoặc nhấn cách (Space) để lật
+                    </div>
+                </div>
+
+                <!-- Back Side -->
+                <div class="card-side card-back">
+                    <span class="word-badge">Nghĩa tiếng Việt</span>
+                    <div class="meaning-vietnamese" id="back-meaning">Loading...</div>
+                    
+                    <div class="context-box">
+                        <div class="context-title">Ngữ cảnh bài học</div>
+                        <span id="back-context">Loading...</span>
+                    </div>
+
+                    <button class="audio-btn" id="speak-btn-back" onclick="speakCurrentWord(event)">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+
+                    <div class="card-action-hint">
+                        <i class="fas fa-redo"></i> Click để quay lại mặt trước
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="nav-btn" onclick="prevCard()">
+                <i class="fas fa-chevron-left"></i> Trước
+            </button>
+            
+            <button class="mark-btn" id="mastered-btn" onclick="toggleMastered()" title="Đánh dấu đã thuộc">
+                <i class="fas fa-check-circle"></i>
+            </button>
+
+            <button class="nav-btn" onclick="nextCard()">
+                Sau <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Shortcuts Hint -->
+        <div class="shortcuts">
+            <span><span class="shortcut-key">Space</span> Lật thẻ</span>
+            <span><span class="shortcut-key">←</span> Trước</span>
+            <span><span class="shortcut-key">→</span> Sau</span>
+            <span><span class="shortcut-key">V</span> Đã thuộc</span>
+        </div>
+
+        <!-- Add Custom Word Form -->
+        <div class="add-word-section">
+            <h3><i class="fas fa-plus-circle"></i> Thêm từ vựng mới</h3>
+            <form id="add-word-form" onsubmit="addNewWord(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="new-word">Từ tiếng Anh</label>
+                        <input type="text" id="new-word" placeholder="Ví dụ: disease" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-ipa">Phiên âm IPA (Tùy chọn)</label>
+                        <input type="text" id="new-ipa" placeholder="Ví dụ: /dɪˈziːz/">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="new-meaning">Nghĩa tiếng Việt</label>
+                        <input type="text" id="new-meaning" placeholder="Ví dụ: dịch bệnh, căn bệnh" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="new-context">Câu ví dụ/Ngữ cảnh (Tùy chọn)</label>
+                        <textarea id="new-context" rows="2" placeholder="Ví dụ câu trong bài nghe..."></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">Thêm vào bộ thẻ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alert toast -->
+    <div class="alert" id="toast">
+        <i class="fas fa-check-circle"></i> <span id="toast-text">Đã thêm từ mới thành công!</span>
+    </div>
+
+    <script>
+        // Dữ liệu từ vựng mặc định từ bài học 37. Diseases
+        const defaultWords = [
+            {
+                word: "disease",
+                ipa: "/dɪˈziːz/",
+                meaning: "dịch bệnh, căn bệnh",
+                context: "There are many diseases.",
+                mastered: false
+            },
+            {
+                word: "deadly",
+                ipa: "/ˈded.li/",
+                meaning: "gây chết người, chí mạng",
+                context: "Some diseases are very deadly, and some are not so serious.",
+                mastered: false
+            },
+            {
+                word: "cough",
+                ipa: "/kɒf/",
+                meaning: "ho, tiếng ho",
+                context: "A cold makes you cough and sneeze.",
+                mastered: false
+            },
+            {
+                word: "sneeze",
+                ipa: "/sniːz/",
+                meaning: "hắt hơi",
+                context: "A cold makes you cough and sneeze.",
+                mastered: false
+            },
+            {
+                word: "pass on",
+                ipa: "/pɑːs ɒn/",
+                meaning: "lây lan, truyền nhiễm",
+                context: "Colds can be passed on from person to person.",
+                mastered: false
+            },
+            {
+                word: "flu",
+                ipa: "/fluː/",
+                meaning: "bệnh cúm",
+                context: "Some people get the flu.",
+                mastered: false
+            },
+            {
+                word: "chill",
+                ipa: "/tʃɪl/",
+                meaning: "sự ớn lạnh",
+                context: "With the flu, you get chills and a fever.",
+                mastered: false
+            },
+            {
+                word: "fever",
+                ipa: "/ˈfiː.vər/",
+                meaning: "cơn sốt",
+                context: "With the flu, you get chills and a fever.",
+                mastered: false
+            },
+            {
+                word: "mumps",
+                ipa: "/mʌmps/",
+                meaning: "bệnh quai bị",
+                context: "The mumps makes you have lumps in your neck.",
+                mastered: false
+            },
+            {
+                word: "lump",
+                ipa: "/lʌmp/",
+                meaning: "cục u, bướu, sưng",
+                context: "The mumps makes you have lumps in your neck.",
+                mastered: false
+            },
+            {
+                word: "chicken pox",
+                ipa: "/ˈtʃɪk.ɪn.pɒks/",
+                meaning: "bệnh thủy đậu",
+                context: "Chicken pox and measles leave you with red itchy dots on your skin.",
+                mastered: false
+            },
+            {
+                word: "measles",
+                ipa: "/ˈmiː.zlz/",
+                meaning: "bệnh sởi",
+                context: "Chicken pox and measles leave you with red itchy dots on your skin.",
+                mastered: false
+            },
+            {
+                word: "itchy",
+                ipa: "/ˈɪtʃ.i/",
+                meaning: "ngứa ngáy",
+                context: "Chicken pox and measles leave you with red itchy dots on your skin.",
+                mastered: false
+            },
+            {
+                word: "arthritis",
+                ipa: "/ɑːˈθraɪ.tɪs/",
+                meaning: "bệnh viêm khớp",
+                context: "Older people sometimes get arthritis.",
+                mastered: false
+            },
+            {
+                word: "stiff",
+                ipa: "/stɪf/",
+                meaning: "tê cứng, đờ cứng",
+                context: "Their bones get stiff and sore.",
+                mastered: false
+            },
+            {
+                word: "sore",
+                ipa: "/sɔːr/",
+                meaning: "đau nhức, ê ẩm",
+                context: "Their bones get stiff and sore.",
+                mastered: false
+            },
+            {
+                word: "lifestyle",
+                ipa: "/ˈlaɪf.staɪl/",
+                meaning: "lối sống, phong cách sống",
+                context: "In many cases, a healthy lifestyle can prevent heart disease.",
+                mastered: false
+            },
+            {
+                word: "prevent",
+                ipa: "/prɪˈvent/",
+                meaning: "ngăn ngừa, phòng chống",
+                context: "In many cases, a healthy lifestyle can prevent heart disease.",
+                mastered: false
+            },
+            {
+                word: "cure",
+                ipa: "/kjʊər/",
+                meaning: "chữa khỏi, điều trị khỏi",
+                context: "Most diseases can be cured by a doctor.",
+                mastered: false
+            }
+        ];
+
+        let words = [];
+        let currentIndex = 0;
+
+        // Load dữ liệu
+        function initData() {
+            const savedWords = localStorage.getItem('dd_vocab_words_37');
+            if (savedWords) {
+                words = JSON.parse(savedWords);
+            } else {
+                words = defaultWords;
+                localStorage.setItem('dd_vocab_words_37', JSON.stringify(words));
+            }
+            updateProgressBar();
+            renderCard();
+        }
+
+        // Render card
+        function renderCard() {
+            if (words.length === 0) {
+                document.getElementById('front-word').innerText = "Không có từ nào";
+                document.getElementById('front-ipa').innerText = "";
+                document.getElementById('back-meaning').innerText = "Hãy thêm từ mới ở dưới";
+                document.getElementById('back-context').innerText = "";
+                return;
+            }
+
+            const current = words[currentIndex];
+            document.getElementById('front-word').innerText = current.word;
+            document.getElementById('front-ipa').innerText = current.ipa || "";
+            document.getElementById('back-meaning').innerText = current.meaning;
+            document.getElementById('back-context').innerText = current.context || "Không có ngữ cảnh";
+
+            document.getElementById('card').classList.remove('flipped');
+
+            const masteredBtn = document.getElementById('mastered-btn');
+            if (current.mastered) {
+                masteredBtn.classList.add('mastered');
+                masteredBtn.setAttribute('title', 'Đã thuộc (Bấm để hủy)');
+            } else {
+                masteredBtn.classList.remove('mastered');
+                masteredBtn.setAttribute('title', 'Đánh dấu đã thuộc');
+            }
+
+            updateProgressBar();
+        }
+
+        // ProgressBar
+        function updateProgressBar() {
+            if (words.length === 0) return;
+            const masteredCount = words.filter(w => w.mastered).length;
+            const progressPercent = (masteredCount / words.length) * 100;
+            
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+            document.getElementById('progress-text').innerText = `${masteredCount} / ${words.length} từ đã thuộc (Thẻ số ${currentIndex + 1})`;
+        }
+
+        // Lật thẻ
+        const cardWrapper = document.getElementById('card-wrapper');
+        cardWrapper.addEventListener('click', () => {
+            document.getElementById('card').classList.toggle('flipped');
+        });
+
+        // Điều hướng
+        function nextCard() {
+            if (words.length === 0) return;
+            currentIndex = (currentIndex + 1) % words.length;
+            renderCard();
+        }
+
+        function prevCard() {
+            if (words.length === 0) return;
+            currentIndex = (currentIndex - 1 + words.length) % words.length;
+            renderCard();
+        }
+
+        // Thuộc từ
+        function toggleMastered() {
+            if (words.length === 0) return;
+            words[currentIndex].mastered = !words[currentIndex].mastered;
+            localStorage.setItem('dd_vocab_words_37', JSON.stringify(words));
+            renderCard();
+            
+            if (words[currentIndex].mastered) {
+                showToast("Đã đánh dấu thuộc từ này! 🎉");
+            }
+        }
+
+        // Phát âm
+        function speakCurrentWord(event) {
+            event.stopPropagation();
+            if (words.length === 0) return;
+            
+            const current = words[currentIndex];
+            const utterance = new SpeechSynthesisUtterance(current.word);
+            utterance.lang = 'en-US';
+            
+            const voices = window.speechSynthesis.getVoices();
+            const englishVoice = voices.find(voice => voice.lang === 'en-US' || voice.lang === 'en-GB');
+            if (englishVoice) {
+                utterance.voice = englishVoice;
+            }
+            
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Thêm từ
+        function addNewWord(event) {
+            event.preventDefault();
+            const wordInput = document.getElementById('new-word');
+            const ipaInput = document.getElementById('new-ipa');
+            const meaningInput = document.getElementById('new-meaning');
+            const contextInput = document.getElementById('new-context');
+
+            const newWord = {
+                word: wordInput.value.trim(),
+                ipa: ipaInput.value.trim(),
+                meaning: meaningInput.value.trim(),
+                context: contextInput.value.trim(),
+                mastered: false
+            };
+
+            words.push(newWord);
+            localStorage.setItem('dd_vocab_words_37', JSON.stringify(words));
+
+            wordInput.value = '';
+            ipaInput.value = '';
+            meaningInput.value = '';
+            contextInput.value = '';
+
+            showToast("Đã thêm từ vựng thành công!");
+            
+            currentIndex = words.length - 1;
+            renderCard();
+        }
+
+        // Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Phím tắt
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                document.getElementById('card').classList.toggle('flipped');
+            } else if (e.code === 'ArrowRight') {
+                nextCard();
+            } else if (e.code === 'ArrowLeft') {
+                prevCard();
+            } else if (e.code === 'KeyV') {
+                toggleMastered();
+            }
+        });
+
+        window.speechSynthesis.onvoiceschanged = () => {};
+        window.onload = initData;
+    </script>
+</body>
+</html>
