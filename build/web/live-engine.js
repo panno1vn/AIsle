@@ -28,6 +28,7 @@ export const DEFAULT_PARAMETERS = Object.freeze({
   stuckTimeout: 1.5,
   maxReplans: 2,
   spawnPeakStrength: 0.55,
+  trajectorySampleSeconds: 0.5,
 });
 
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -257,8 +258,9 @@ export function shelfAccessPaths(shelf, from, layout, grid) {
 
 export class LiveSimulation {
   constructor({ layout, catalog, population, parameters = {}, seed = 42, durationMinutes = 30 }) {
-    this.layout = structuredClone(layout); this.catalog = structuredClone(catalog); this.parameters = { ...DEFAULT_PARAMETERS, ...parameters }; this.seed = seed; this.rng = createRng(seed); this.duration = durationMinutes * 60; this.time = 0; this.grid = new PathGrid(this.layout, this.parameters); this.events = []; this.purchases = []; this.revenue = 0; this.completed = false; this.dwellByShelf = Object.fromEntries(this.layout.shelves.map(s => [s.id, 0])); this.catalogCategories = new Set(catalog.map(p => p.category));
-    const spawns = this.makeSpawnTimes(population.length); this.agents = population.map((genome, index) => ({ ...structuredClone(genome), x: layout.entrance.x, y: layout.entrance.y, status: 'WAITING', spawn: spawns[index], valence: genome.attractor, need: genome.needProduct, explore: genome.needExplore, path: [], pathIndex: 0, dwellLeft: 0, visited: [], boughtMain: false, boughtImpulse: false, currentShelf: null, utility: null, trail: [], finished: false, stuckFor: 0, replans: 0, routeTarget: null, routeStatus: null, stridePhase: this.rng() * Math.PI * 2 }));
+    this.layout = structuredClone(layout); this.catalog = structuredClone(catalog); this.parameters = { ...DEFAULT_PARAMETERS, ...parameters }; this.seed = seed; this.rng = createRng(seed); this.spawnRng = createRng((Number(seed) ^ 0x9e3779b9) >>> 0); this.decisionRng = createRng((Number(seed) ^ 0x85ebca6b) >>> 0); this.duration = durationMinutes * 60; this.time = 0; this.grid = new PathGrid(this.layout, this.parameters); this.events = []; this.purchases = []; this.revenue = 0; this.completed = false; this.dwellByShelf = Object.fromEntries(this.layout.shelves.map(s => [s.id, 0])); this.catalogCategories = new Set(catalog.map(p => p.category)); this.trajectories = {};
+    const spawns = this.makeSpawnTimes(population.length); this.agents = population.map((genome, index) => ({ ...structuredClone(genome), x: layout.entrance.x, y: layout.entrance.y, status: 'WAITING', spawn: spawns[index], valence: genome.attractor, need: genome.needProduct, explore: genome.needExplore, path: [], pathIndex: 0, dwellLeft: 0, visited: [], boughtMain: false, boughtImpulse: false, currentShelf: null, utility: null, trail: [], finished: false, stuckFor: 0, replans: 0, routeTarget: null, routeStatus: null, stridePhase: this.rng() * Math.PI * 2, lastTrajectoryTime: -Infinity, lastTrajectoryStatus: null }));
+    for (const agent of this.agents) this.trajectories[agent.id] = [];
     this.stats = { spawned: 0, converted: 0, mainBuyers: 0, impulseBuyers: 0, notFound: population.filter(n => n.target && !this.catalogCategories.has(n.target)).length, unreachable: 0, stuckRecoveries: 0 };
   }
   makeSpawnTimes(count) {
@@ -270,25 +272,25 @@ export class LiveSimulation {
       const strength = clamp(this.parameters.spawnPeakStrength, 0, .95), meanRate = count / (this.duration / 60), normalizer = 1 + strength * 2 / Math.PI;
       curve = Array.from({ length: 25 }, (_, index) => { const phase = index / 24; return { minute: phase * this.duration / 60, rate: meanRate * (1 + strength * Math.sin(phase * Math.PI)) / normalizer } });
     }
-    const result = samplePoissonSpawnTimes({ curve, durationSeconds: this.duration, rng: this.rng, maxCount: count });
+    const result = samplePoissonSpawnTimes({ curve, durationSeconds: this.duration, rng: this.spawnRng, maxCount: count });
     while (result.length < count) result.push(Infinity);
     return result;
   }
-  emit(agent, type, message, data = {}) { const item = { time: this.time, npc: agent?.id || 'system', type, message, ...data }; this.events.push(item); if (this.events.length > 600) this.events.shift(); return item }
-  step(dt = this.parameters.tickSeconds) { if (this.completed) return; dt = clamp(dt, .01, 2); this.time = Math.min(this.duration, this.time + dt); const active = []; for (const agent of this.agents) { if (agent.finished || this.time < agent.spawn) continue; if (agent.status === 'WAITING') { agent.status = 'DECIDING'; this.stats.spawned++; this.emit(agent, 'spawn', `spawned with target ${agent.target || 'browse-only'}`) } agent.need = clamp(agent.need + agent.needGrowth * dt / 60 * this.parameters.needTimeScale, 0, 1); agent.explore = clamp(agent.explore + agent.exploreGrowth * dt / 60 * this.parameters.needTimeScale, 0, 1); this.updateAgent(agent, dt); if (!agent.finished) active.push(agent) } this.separate(active); if (this.time >= this.duration || this.agents.every(a => a.finished)) { this.completed = true; this.emit(null, 'complete', `simulation complete at ${this.time.toFixed(1)}s`) } }
-  updateAgent(a, dt) { if (a.status === 'DECIDING') this.decide(a); else if (a.status === 'TRANSIT' || a.status === 'CHECKOUT' || a.status === 'LEAVING') this.move(a, dt); else if (a.status === 'DWELL') { a.dwellLeft -= dt; this.dwellByShelf[a.currentShelf] = (this.dwellByShelf[a.currentShelf] || 0) + dt; if (a.dwellLeft <= 0) this.finishDwell(a) } a.trail.push({ x: a.x, y: a.y }); if (a.trail.length > 80) a.trail.shift() }
+  emit(agent, type, message, data = {}) { const item = { time: this.time, npc: agent?.id || 'system', type, message, ...data }; this.events.push(item); return item }
+  step(dt = this.parameters.tickSeconds) { if (this.completed) return; dt = clamp(dt, .01, 2); this.time = Math.min(this.duration, this.time + dt); const active = []; for (const agent of this.agents) { if (agent.finished || this.time < agent.spawn) continue; if (agent.status === 'WAITING') { agent.status = 'DECIDING'; this.stats.spawned++; this.emit(agent, 'spawn', `spawned with target ${agent.target || 'browse-only'}`); if (agent.target && !this.catalogCategories.has(agent.target)) this.emit(agent, 'phantom-need', `requested unavailable category ${agent.target}`, { targetCategory: agent.target }) } agent.need = clamp(agent.need + agent.needGrowth * dt / 60 * this.parameters.needTimeScale, 0, 1); agent.explore = clamp(agent.explore + agent.exploreGrowth * dt / 60 * this.parameters.needTimeScale, 0, 1); this.updateAgent(agent, dt); if (!agent.finished) active.push(agent) } this.separate(active); if (this.time >= this.duration || this.agents.every(a => a.finished)) { this.completed = true; this.emit(null, 'complete', `simulation complete at ${this.time.toFixed(1)}s`) } }
+  updateAgent(a, dt) { if (a.status === 'DECIDING') this.decide(a); else if (a.status === 'TRANSIT' || a.status === 'CHECKOUT' || a.status === 'LEAVING') this.move(a, dt); else if (a.status === 'DWELL') { a.dwellLeft -= dt; this.dwellByShelf[a.currentShelf] = (this.dwellByShelf[a.currentShelf] || 0) + dt; if (a.dwellLeft <= 0) this.finishDwell(a) } a.trail.push({ x: a.x, y: a.y }); if (a.trail.length > 80) a.trail.shift(); this.recordTrajectory(a) }
   decide(a) {
     if (a.visited.length >= this.parameters.maxShelfVisits) { this.routeExit(a); return }
     let blockedCount = 0;
     const candidates = this.layout.shelves.filter(s => !a.visited.includes(s.id)).map(s => {
       const accessPoints = shelfAccessPaths(s, a, this.layout, this.grid);
-      const access = chooseTopWeighted(accessPoints, 2, item => 1 / Math.pow(Math.max(item.pathLength, .01), this.parameters.weightedRandomSharpness), this.rng);
+      const access = chooseTopWeighted(accessPoints, 2, item => 1 / Math.pow(Math.max(item.pathLength, .01), this.parameters.weightedRandomSharpness), this.decisionRng);
       if (!access) { blockedCount++; return null }
       const products = this.catalog.filter(p => p.shelf === s.id), match = products.some(p => p.category === a.target) ? 1 : 0;
       const needAmount = match ? a.need : 0;
       const needDelta = attenuate(a.need, this.parameters.needAttenuationSharpness) - attenuate(Math.max(0, a.need - needAmount), this.parameters.needAttenuationSharpness);
       const need = this.parameters.utilityNeedWeight * needDelta, explore = this.parameters.utilityExploreWeight * a.explore, valence = this.parameters.utilityValenceWeight * ((s.valence + 1) / 2);
-      const travel = this.parameters.distancePenalty / Math.max(access.pathLength * access.pathLength, DISTANCE_PENALTY_FLOOR), noise = this.rng() * this.parameters.decisionNoise;
+      const travel = this.parameters.distancePenalty * Math.max(access.pathLength * access.pathLength, DISTANCE_PENALTY_FLOOR), noise = this.decisionRng() * this.parameters.decisionNoise;
       return { shelf: s, path: access.path, target: access.point, total: need + explore + valence - travel + noise, need, explore, valence, travel, noise, match };
     }).filter(Boolean).sort((x, y) => y.total - x.total);
     if (!candidates.length) {
@@ -296,7 +298,7 @@ export class LiveSimulation {
       this.routeExit(a); return;
     }
     const bestTotal = candidates[0].total;
-    const choice = chooseTopWeighted(candidates, this.parameters.topKChoices, item => Math.exp((item.total - bestTotal) * this.parameters.weightedRandomSharpness), this.rng);
+    const choice = chooseTopWeighted(candidates, this.parameters.topKChoices, item => Math.exp((item.total - bestTotal) * this.parameters.weightedRandomSharpness), this.decisionRng);
     a.utility = choice; a.path = choice.path; a.pathIndex = 1; a.currentShelf = choice.shelf.id; a.status = 'TRANSIT'; a.routeTarget = choice.target; a.routeStatus = 'TRANSIT'; a.stuckFor = 0; a.replans = 0;
     this.emit(a, 'decision', `chose ${choice.shelf.label}: U=${choice.total.toFixed(3)}`, { utility: { ...choice, path: undefined }, candidates: candidates.slice(0, 3).map(x => ({ id: x.shelf.id, total: x.total })) });
   }
@@ -345,6 +347,37 @@ export class LiveSimulation {
       const push = (radius - d) / radius * strength * .5, pa = { x: a.x + dx / d * push, y: a.y + dy / d * push }, pb = { x: b.x - dx / d * push, y: b.y - dy / d * push };
       if (this.grid.line(a, pa)) { a.x = pa.x; a.y = pa.y } if (this.grid.line(b, pb)) { b.x = pb.x; b.y = pb.y }
     }
+  }
+  recordTrajectory(agent, force = false) {
+    const sampleSeconds = clamp(Number(this.parameters.trajectorySampleSeconds) || .5, .05, 10);
+    const statusChanged = agent.lastTrajectoryStatus !== agent.status;
+    if (!force && !statusChanged && this.time - agent.lastTrajectoryTime + 1e-9 < sampleSeconds) return;
+    const sample = [
+      Number(this.time.toFixed(3)),
+      Number(agent.x.toFixed(3)),
+      Number(agent.y.toFixed(3)),
+      agent.status,
+      agent.currentShelf || null,
+    ];
+    const samples = this.trajectories[agent.id], last = samples.at(-1);
+    if (last?.[0] === sample[0]) samples[samples.length - 1] = sample;
+    else samples.push(sample);
+    agent.lastTrajectoryTime = this.time;
+    agent.lastTrajectoryStatus = agent.status;
+  }
+  exportTrajectory() {
+    for (const agent of this.agents) {
+      if (this.time >= agent.spawn && Number.isFinite(agent.spawn)) this.recordTrajectory(agent, true);
+    }
+    return {
+      sampleSeconds: clamp(Number(this.parameters.trajectorySampleSeconds) || .5, .05, 10),
+      columns: ['time', 'x', 'y', 'status', 'shelfId'],
+      agents: this.agents.map(agent => ({
+        id: agent.id,
+        spawn: Number.isFinite(agent.spawn) ? Number(agent.spawn.toFixed(3)) : null,
+        samples: structuredClone(this.trajectories[agent.id]),
+      })),
+    };
   }
   snapshot() { return { time: this.time, revenue: this.revenue, purchases: this.purchases.length, spawned: this.stats.spawned, active: this.agents.filter(a => !a.finished && this.time >= a.spawn).length, conversionRate: this.stats.spawned ? this.stats.converted / this.stats.spawned : 0, mainRate: this.stats.spawned ? this.stats.mainBuyers / this.stats.spawned : 0, impulseRate: this.stats.spawned ? this.stats.impulseBuyers / this.stats.spawned : 0, notFoundRate: this.agents.length ? this.stats.notFound / this.agents.length : 0, completed: this.completed } }
 }

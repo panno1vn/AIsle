@@ -1,4 +1,5 @@
 import {validateLayout} from '../../web/layout-validation.js';
+import {validateSimResult} from '../../web/sim-result.js';
 
 async function readBody(request, maxBytes = 12_000_000) {
   const chunks = [];
@@ -50,6 +51,23 @@ export function createApiRouter(store) {
     if (url.pathname === '/api/live-result' && request.method === 'POST') {
       await store.saveLiveResult(await readBody(request));
       sendJson(response, {ok: true});
+      return true;
+    }
+    if (url.pathname === '/api/history' && request.method === 'GET') {
+      sendJson(response, {runs: await store.listHistory()});
+      return true;
+    }
+    if (url.pathname === '/api/history' && request.method === 'POST') {
+      const result = await readBody(request), validation = validateSimResult(result);
+      if (!validation.valid) {
+        sendJson(response, {error: validation.errors.join(' '), errors: validation.errors}, 400);
+        return true;
+      }
+      sendJson(response, {ok: true, ...(await store.saveHistory(result))}, 201);
+      return true;
+    }
+    if (url.pathname.startsWith('/api/history/') && request.method === 'GET') {
+      sendJson(response, await store.getHistory(decodeURIComponent(url.pathname.slice('/api/history/'.length))));
       return true;
     }
     if (url.pathname.startsWith('/api/')) {

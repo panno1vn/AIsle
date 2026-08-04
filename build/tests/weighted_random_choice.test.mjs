@@ -30,7 +30,7 @@ const parameters = {
 
 let leftCount = 0;
 let rightCount = 0;
-for (let seed = 1; seed <= 200; seed++) {
+for (let seed = 1; seed <= 2000; seed++) {
     const simulation = new LiveSimulation({
         layout,
         catalog,

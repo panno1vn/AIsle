@@ -37,6 +37,18 @@ The simulation follows the object-centric idea used by The Sims: shelves adverti
 4. Runtime movement and crowd separation re-check collision.
 5. Failed routes trigger bounded replanning, then shelf abandonment and exit routing.
 
+## Utility decision
+
+Need utility is the attenuated delta between the NPC's current need and its predicted need after using a matching shelf. Travel is a true cost: `distancePenalty × pathLength²`. Reachable candidates are sorted, then selected with a seeded weighted random over top-K instead of hard argmax. Spawn and decision use separate deterministic RNG streams so changes to arrival sampling do not silently change decision distributions.
+
+Unavailable non-empty target categories emit a `phantom-need` event at spawn and remain visible in the decision trace.
+
+## SimResult and replay
+
+`web/sim-result.js` owns schema `aisle.sim-result.v1`. A result contains the complete input/project snapshot, summary, untruncated events and purchases, dwell totals, and replay trajectory for every NPC. Trajectory samples use compact columns `[time, x, y, status, shelfId]` at `trajectorySampleSeconds` intervals plus every status transition.
+
+The client saves completed runs through `POST /api/history`. The backend validates the schema, stores immutable run files under `runtime/history`, lists summaries with `GET /api/history`, and returns a full run with `GET /api/history/:id`.
+
 ## Spawn process
 
 `layout.spawnRateCurve` is a list of `{minute, rate}` points, where `rate` is measured in arrivals per minute. The engine linearly interpolates the curve and samples a seeded non-homogeneous Poisson process with thinning. A fixed simulation seed therefore reproduces the same arrivals. Legacy layouts without a curve use the previous sine-shaped peak as a rate profile, normalized to the requested population size.
@@ -49,4 +61,4 @@ Saving requires both `entrance` and `checkout` points. Shelf reachability is che
 
 ## Performance baseline
 
-Task 1.4 benchmark command: `node tests/benchmark.mjs`. On 2026-08-04 with Node.js 24 on the development Windows machine, two runs of 200 NPCs over 3,600 one-second ticks completed in **562-661 ms** (**0.156-0.184 ms/tick**), with all 200 NPCs spawned. This is comfortably below the 3-5 second optimization threshold, so the current pairwise separation and uncached shelf path evaluation remain in place. Spatial hashing and path caching should only be introduced after a future benchmark crosses that threshold, to avoid cache invalidation risk when layouts change.
+Task 1.4 benchmark command: `node tests/benchmark.mjs`. On 2026-08-04 with Node.js 24 on the development Windows machine, 200 NPCs over 3,600 one-second ticks including trajectory capture completed in **879 ms** (**0.244 ms/tick**), with all 200 NPCs spawned. This remains comfortably below the 3-5 second optimization threshold, so the current pairwise separation and uncached shelf path evaluation remain in place. Spatial hashing and path caching should only be introduced after a future benchmark crosses that threshold, to avoid cache invalidation risk when layouts change.

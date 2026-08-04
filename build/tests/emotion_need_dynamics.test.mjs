@@ -21,6 +21,7 @@ const growthSim = new LiveSimulation({
 });
 
 const agent = growthSim.agents[0];
+agent.spawn = 0;
 const initialNeed = agent.need;
 const initialExplore = agent.explore;
 const needStep = agent.needGrowth * growthSim.parameters.tickSeconds / 60 * growthSim.parameters.needTimeScale;

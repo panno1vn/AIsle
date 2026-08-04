@@ -25,6 +25,7 @@ build/
 │   ├── index.html             # page hiện tại; có thể thêm page mới tại đây
 │   ├── app.js                 # editor và Canvas UI
 │   ├── live-engine.js         # simulation core, không phụ thuộc DOM
+│   ├── sim-result.js          # schema export/history dùng chung
 │   ├── project-defaults.js
 │   ├── styles.css
 │   └── overrides.css
@@ -43,8 +44,20 @@ Backend tách router khỏi storage. Khi thêm page, đặt HTML/JS/CSS trong `w
 - Mỗi bước di chuyển và crowd separation đều kiểm tra segment walkable.
 - NPC bị kẹt sẽ tìm đường lại; quá số lần cho phép thì bỏ shelf và quay về entrance.
 - Nếu mọi shelf đều không tới được, NPC ghi event `unreachable` và rời cửa hàng.
+- Target ngoài catalog ghi event `phantom-need` ngay khi NPC spawn.
+- Need utility dùng attenuated delta; travel cost tăng theo bình phương độ dài đường A*; lựa chọn trong top-K dùng weighted random có seed.
 
 Các hằng số `stuckTimeout`, `maxReplans`, kích thước grid, obstacle margin và utility có thể chỉnh trong Parameter Lab.
+
+## Result và history
+
+Mọi export dùng schema `aisle.sim-result.v1`, gồm input, project snapshot, summary, toàn bộ event/purchase và trajectory replay của từng NPC. Trajectory là mảng compact `[time, x, y, status, shelfId]`; tần suất lấy mẫu chỉnh bằng `trajectorySampleSeconds`.
+
+- `GET /api/history` — danh sách run.
+- `POST /api/history` — lưu một `SimResult` hợp lệ.
+- `GET /api/history/:id` — tải đầy đủ run để replay.
+
+History được lưu trong `runtime/history/` và không đưa lên Git.
 
 ## Test
 
@@ -54,5 +67,10 @@ node tests/pathfinding_rules.test.mjs
 node tests/spawn_curve.test.mjs
 node tests/layout_validation.test.mjs
 node tests/population_generation.test.mjs
+node tests/phantom_need.test.mjs
+node tests/emotion_need_dynamics.test.mjs
+node tests/utility_attenuation.test.mjs
+node tests/weighted_random_choice.test.mjs
+node tests/sim_result_history.test.mjs
 node tests/benchmark.mjs
 ```

@@ -1,4 +1,5 @@
 import {DEFAULT_PARAMETERS, LiveSimulation, createRng, generatePopulation, manualPopulation} from './live-engine.js';
+import {createSimResult} from './sim-result.js';
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -8,7 +9,7 @@ const money=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n))+' ₫';
 const pct=n=>(n*100).toFixed(1)+'%';
 const escapeHTML=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-let layout,catalog,simulation=null,manualRows=[],parameters={...DEFAULT_PARAMETERS};
+let layout,catalog,simulation=null,simResult=null,manualRows=[],parameters={...DEFAULT_PARAMETERS};
 let selected=null,tool='select',draft=null,drag=null,playing=false,lastFrame=0,accumulator=0,dirty=true;
 const colors={WAITING:'#64748b',DECIDING:'#a78bfa',TRANSIT:'#4cc9f0',DWELL:'#ffc24b',PURCHASED:'#22c55e',CHECKOUT:'#ff4d8d',LEAVING:'#ff4d8d'};
 
@@ -46,7 +47,7 @@ function bind(){
 function resizeCanvas(){const canvas=$('#scene'),rect=canvas.getBoundingClientRect();const width=Math.max(1,Math.floor(rect.width)),height=Math.max(1,Math.floor(rect.height));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}draw()}
 
 function buildParameterLab(){const groups={
-  'TIME & SPAWN':['tickSeconds','needTimeScale','spawnPeakStrength'],
+  'TIME & SPAWN':['tickSeconds','needTimeScale','spawnPeakStrength','trajectorySampleSeconds'],
   'UTILITY AI':['utilityNeedWeight','utilityExploreWeight','utilityValenceWeight','distancePenalty','decisionNoise','maxShelfVisits'],
   'PURCHASE':['purchaseNeedA','purchaseValenceB','purchaseBiasC','impulseBase'],
   'MOTION & PATH':['dwellScale','collisionRadius','separationStrength','pathCellSize','obstacleMargin','stuckTimeout','maxReplans'],
@@ -54,10 +55,10 @@ function buildParameterLab(){const groups={
   $('#parameter-grid').innerHTML=Object.entries(groups).map(([group,keys])=>`<fieldset><legend>${group}</legend>${keys.map(key=>`<label>${parameterLabel(key)}<input type="number" data-param="${key}" value="${parameters[key]}" step="${parameterStep(key)}"></label>`).join('')}</fieldset>`).join('')}
 function parameterLabel(key){return key.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase())}
 function parameterStep(key){return['maxShelfVisits','maxReplans'].includes(key)?1:['purchaseNeedA','purchaseValenceB','purchaseBiasC','utilityNeedWeight','utilityExploreWeight','dwellScale','stuckTimeout'].includes(key)?.1:.01}
-function applyParameters(){for(const input of $$('[data-param]')){const value=Number(input.value);if(!Number.isFinite(value))return toast(`${input.dataset.param} is not a number`);parameters[input.dataset.param]=value}parameters.tickSeconds=clamp(parameters.tickSeconds,.02,2);parameters.maxShelfVisits=clamp(Math.round(parameters.maxShelfVisits),1,10);parameters.maxReplans=clamp(Math.round(parameters.maxReplans),0,8);parameters.stuckTimeout=clamp(parameters.stuckTimeout,.2,10);parameters.pathCellSize=clamp(parameters.pathCellSize,.1,.75);parameters.impulseBase=clamp(parameters.impulseBase,0,1);$('#parameter-dialog').close();markDirty('Parameter set changed. Reset/Run will use the new constants.');toast('Parameters applied')}
+function applyParameters(){for(const input of $$('[data-param]')){const value=Number(input.value);if(!Number.isFinite(value))return toast(`${input.dataset.param} is not a number`);parameters[input.dataset.param]=value}parameters.tickSeconds=clamp(parameters.tickSeconds,.02,2);parameters.trajectorySampleSeconds=clamp(parameters.trajectorySampleSeconds,.05,10);parameters.maxShelfVisits=clamp(Math.round(parameters.maxShelfVisits),1,10);parameters.maxReplans=clamp(Math.round(parameters.maxReplans),0,8);parameters.stuckTimeout=clamp(parameters.stuckTimeout,.2,10);parameters.pathCellSize=clamp(parameters.pathCellSize,.1,.75);parameters.impulseBase=clamp(parameters.impulseBase,0,1);$('#parameter-dialog').close();markDirty('Parameter set changed. Reset/Run will use the new constants.');toast('Parameters applied')}
 
 function population(){if($('#population-mode').value==='manual'){if(!manualRows.length)throw new Error('Enter at least one manual NPC.');return manualPopulation(manualRows)}return generatePopulation(catalog,Number($('#npc-count').value),createRng(Number($('#seed').value)))}
-function createSimulation(){const pop=population();simulation=new LiveSimulation({layout,catalog,population:pop,parameters,seed:Number($('#seed').value),durationMinutes:Number($('#duration').value)});dirty=false;selected=null;updateMetrics();renderInspector();renderEvents();draw();return simulation}
+function createSimulation(){const pop=population();simulation=new LiveSimulation({layout,catalog,population:pop,parameters,seed:Number($('#seed').value),durationMinutes:Number($('#duration').value)});simResult=null;dirty=false;selected=null;updateMetrics();renderInspector();renderEvents();draw();return simulation}
 function toggleRun(){try{if(dirty||!simulation)createSimulation();playing=!playing;$('#play-btn').textContent=playing?'❚❚ Pause':'▶ Run live';$('#stage-status').textContent=playing?'RUNNING LIVE':'PAUSED';if(playing){lastFrame=performance.now();accumulator=0;requestAnimationFrame(frame)}}catch(error){toast(error.message);showSystemEvent(error.message)}}
 function resetSimulation(){playing=false;try{createSimulation();$('#play-btn').textContent='▶ Run live';$('#stage-status').textContent='RESET · T=0';showSystemEvent('Reset with identical seed. Press Run live or Step.')}catch(error){toast(error.message)}}
 function singleStep(){playing=false;try{if(dirty||!simulation)createSimulation();simulation.step(parameters.tickSeconds);$('#play-btn').textContent='▶ Run live';$('#stage-status').textContent=`SINGLE STEP · Δt=${parameters.tickSeconds}s`;updateAll()}catch(error){toast(error.message)}}
@@ -123,8 +124,9 @@ function marker(ctx,p,icon,label,color,sx,sy){if(!p)return;ctx.fillStyle='#090f1
 function openManual(){const columns='npc_id,target_category,need_product,need_growth,need_explore,explore_growth,attractor,stability,dispersion,recovery,speed,dwell,steadiness',sample='test_001,beverage,0.8,0.02,0.25,0.01,0.3,0.65,0.4,0.15,1.3,9,0.75';$('#manual-editor').value=columns+'\n'+(manualRows.length?manualRows.map(row=>columns.split(',').map(k=>row[k]??'').join(',')).join('\n'):sample);$('#manual-error').textContent='Values are clamped to safe ranges.';$('#manual-dialog').showModal()}
 function applyManual(){try{const lines=$('#manual-editor').value.trim().split(/\r?\n/),headers=lines.shift().split(',').map(x=>x.trim());manualRows=lines.filter(Boolean).map(line=>Object.fromEntries(headers.map((h,i)=>[h,line.split(',')[i]?.trim()??''])));manualPopulation(manualRows);if(!manualRows.length)throw new Error('Enter at least one NPC row.');$('#manual-count').textContent=manualRows.length;$('#population-mode').value='manual';$('#npc-count').disabled=true;$('#manual-dialog').close();markDirty(`${manualRows.length} manual NPC inputs applied.`)}catch(error){$('#manual-error').textContent=error.message;$('#manual-error').style.color='#ef5d67'}}
 async function saveProject(){try{const result=await api('/api/project',{method:'POST',body:JSON.stringify({layout,catalog})});$('#save-state').textContent='● Saved';if(result.warnings?.length){const message=`Saved with warning: ${result.warnings.join(' ')}`;showSystemEvent(message);toast(`${result.warnings.length} layout warning${result.warnings.length>1?'s':''}`)}}catch(error){$('#save-state').textContent='● Unsaved';showSystemEvent(error.message);toast(error.message)}}
-async function saveLiveResult(){if(!simulation)return;const payload={name:$('#run-name').value,seed:simulation.seed,parameters,summary:simulation.snapshot(),purchases:simulation.purchases,events:simulation.events,dwellByShelf:simulation.dwellByShelf};try{await api('/api/live-result',{method:'POST',body:JSON.stringify(payload)})}catch{}}
-function exportSimulation(){const payload={layout,catalog,manual_npcs:manualRows,parameters,summary:simulation?.snapshot(),purchases:simulation?.purchases,decision_trace:simulation?.events};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='aisle-live-simulation.json';a.click()}
+function currentSimResult(){return simResult??=createSimResult({simulation,name:$('#run-name').value,layout,catalog,manualNpcs:manualRows,populationMode:$('#population-mode').value})}
+async function saveLiveResult(){if(!simulation)return;try{const saved=await api('/api/history',{method:'POST',body:JSON.stringify(currentSimResult())});showSystemEvent(`Run saved to history: ${saved.id}`)}catch(error){showSystemEvent(`History save failed: ${error.message}`)}}
+function exportSimulation(){if(!simulation||dirty)return toast('Run or Step the current inputs before exporting.');const payload=currentSimResult(),blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`aisle-${payload.id}.sim-result.json`;a.click();URL.revokeObjectURL(a.href)}
 function durationSeconds(){return Number($('#duration').value)*60}function formatTime(seconds){return`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(Math.floor(seconds%60)).padStart(2,'0')}`}
 
 init().catch(error=>showSystemEvent(error.message));
