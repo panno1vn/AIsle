@@ -1,70 +1,187 @@
-# AIsle — Store Simulator (kiến trúc Oxyte)
+# AIsle — Store Customer Simulation
 
-Công cụ **đánh giá** layout cửa hàng tiện lợi bằng mô phỏng NPC. Không tự tối ưu, không xếp hạng tự động — Manager tự đọc số liệu và quyết định.
+AIsle là hệ thống mô phỏng hành vi khách hàng trong cửa hàng tiện lợi. Dự án kết hợp dữ liệu quan sát từ video thực tế, ngữ cảnh cửa hàng, quần thể NPC sinh bằng Genetic Algorithm và Utility AI lấy cảm hứng từ *The Sims*.
 
----
+Manager có thể thử nghiệm layout, vị trí kệ hàng, catalog và chính sách bán hàng trong môi trường mô phỏng trước khi áp dụng vào cửa hàng thật. Hệ thống tập trung vào khả năng quan sát, replay và giải thích nguyên nhân dẫn đến kết quả; không tự động tuyên bố một layout là “tối ưu”.
 
-## Trạng thái: 5/5 màn hình đã chạy được
+## Lý thuyết nền tảng sản phẩm
 
-| Thành phần | Trạng thái | Ghi chú |
-|---|---|---|
-| `engine/models.py` | ✅ | Genome/NPC dataclass + loaders |
-| `engine/geometry.py` | ✅ | Zone polygon (Shapely) |
-| `engine/behavior.py` | ✅ | Utility chọn zone + emotion update |
-| `engine/purchase.py` | ✅ | `P = sigmoid(a·need + b·valence + c)`, khớp 2 ca mẫu A3 |
-| `engine/simulation.py` | ✅ | Vòng lặp đầy đủ + spawn Poisson + lưu/đọc run |
-| `population/generate.py` | ✅ | Crossover + mutation, tỷ lệ 80/10/6/4 |
-| Màn 1 — Layout Designer | ✅ | Vẽ polygon (streamlit-drawable-canvas) |
-| Màn 2 — Catalog Manager | ✅ | Bảng inline-edit + form + import CSV |
-| Màn 3 — Cấu hình & Chạy | ✅ | Chạy engine thật, 200 NPC, lưu ra `data/runs/` |
-| Màn 4 — Kết quả & Replay | ✅ | Plotly animation, đọc kết quả thật |
-| Màn 5 — Lịch sử | ✅ | So sánh nhiều lần chạy |
+Nhóm sử dụng **Peak–End Rule** làm một trong những lý thuyết nền tảng để thiết kế AIsle. Ký ức của khách hàng về một trải nghiệm chịu ảnh hưởng lớn bởi thời điểm cảm xúc mạnh nhất và trạng thái ở cuối hành trình.
 
-**Kiểm thử:** 16/16 pytest pass · 6/6 trang chạy sạch qua `streamlit.testing.v1.AppTest`
+![Peak–End Rule — lý thuyết nền tảng cho mô hình trải nghiệm khách hàng của AIsle](build/docs/pic.jpg)
 
----
+Trong simulator:
 
-## Cài đặt & chạy
+- Mỗi NPC có trajectory cảm xúc trong suốt hành trình mua sắm.
+- Tương tác tại shelf, sản phẩm hoặc ưu đãi có thể tạo peak valence.
+- Checkout và thời điểm rời cửa hàng tạo thành trạng thái kết thúc.
+- Replay và decision trace giúp xác định sự kiện tạo peak và nguyên nhân dẫn tới end state.
+- Kịch bản có thể được nghiên cứu đồng thời theo doanh thu, trải nghiệm và retention proxy.
 
-```bash
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+## Đối tượng sử dụng
 
-pytest tests/ -v                  # chạy test
-python -m engine.purchase          # kiểm tra 2 ca mẫu công thức mua hàng
-streamlit run app/Home.py          # chạy dashboard
+- Manager các chuỗi cửa hàng tiện lợi như Circle K, GS25 và 7-Eleven.
+- Chủ cửa hàng muốn kiểm tra phương án bố trí trước khi đầu tư triển khai.
+- Nhóm phân tích hành vi khách hàng và hiệu quả kinh doanh.
+
+## Bài toán
+
+Việc thử trực tiếp một layout hoặc chính sách mới trong cửa hàng thật tốn thời gian, chi phí và có thể ảnh hưởng doanh thu. AIsle cung cấp một phòng thí nghiệm mô phỏng để trả lời các câu hỏi:
+
+- Nên đặt từng nhóm sản phẩm ở đâu?
+- Wall, lối đi, entrance và checkout ảnh hưởng thế nào đến luồng khách?
+- Ưu đãi có làm tăng tỷ lệ mua hoặc impulse purchase không?
+- Một phương án tăng doanh thu có làm giảm trải nghiệm cuối hành trình không?
+- NPC chọn shelf vì nhu cầu, cảm xúc hay chi phí di chuyển?
+
+## Luồng hoạt động
+
+```text
+Video khách hàng thật ─┐
+                       ├─> Trích xuất đặc trưng và gắn nhãn
+Ngữ cảnh cửa hàng ─────┘
+                                  │
+                                  ▼
+                     Sinh quần thể NPC bằng GA
+                                  │
+                                  ▼
+              Utility AI + A* + hard collision rules
+                                  │
+                                  ▼
+               Chạy nhiều layout/chính sách thử nghiệm
+                                  │
+                                  ▼
+          Live view, replay, history và decision trace
 ```
 
-Luồng dùng thử: Màn 1 vẽ zone (nhớ có zone tên `Entrance`) → Màn 2 nhập sản phẩm → Màn 3 bấm Chạy → Màn 4 xem replay → Màn 5 so sánh nhiều lần chạy.
+Shelf là smart object quảng bá category, sản phẩm và valence. NPC chấm utility theo attenuated need-delta, mức khám phá, cảm xúc và chi phí đường đi bậc hai. Lựa chọn trong top-K sử dụng weighted random có seed, giúp hành vi có biến thiên nhưng vẫn replay được.
 
-Nếu chưa vẽ layout riêng, Màn 3 tự dùng `data/layout_mau.json` + `data/catalog_mau.json` nên vẫn chạy được ngay.
+## Tính năng chính
 
----
+- Canvas editor cho wall, shelf, entrance và checkout.
+- Wall có thể di chuyển, thay đổi đầu mút hoặc nhập tọa độ trực tiếp.
+- Sinh 150–200 NPC bằng GA hoặc nhập NPC thủ công bằng CSV.
+- Poisson spawn theo đường cong lưu lượng có seed.
+- Utility AI, cảm xúc, main purchase và impulse purchase.
+- A* pathfinding không xuyên wall/shelf, có stuck recovery và abandon target.
+- Event `phantom-need`, `unreachable`, `replan` và decision trace.
+- Run, Pause, Reset, Single Step, timeline và nhiều tốc độ chạy.
+- Live KPI: doanh thu, conversion, purchases và nhu cầu ngoài catalog.
+- Export chuẩn `aisle.sim-result.v1`.
+- Trajectory replay đầy đủ cho từng NPC.
+- History API để lưu, liệt kê và đọc lại simulation run.
 
-## Giới hạn đã biết (ghi vào báo cáo, mục 9 đặc tả)
+## Chạy ứng dụng
 
-**Tham số do nhóm chọn, không phải số đo thật:**
-- Hằng số `a=3.0, b=1.5, c=-2.0` trong công thức xác suất mua (`engine/purchase.py`)
-- Tỷ lệ `target_category_origin` 80/10/6/4 (`population/generate.py`)
-- 5 gen gốc mẫu `GEN_GOC_MAC_DINH` — gán tay, thay cho trích xuất từ video thật
-- Hàm `zone_base_valence()` trong `engine/behavior.py` — heuristic tự bổ sung, đặc tả gốc không có công thức này
+### Yêu cầu
 
-**Đơn giản hoá có chủ đích trong `engine/simulation.py`:**
-- Mỗi NPC ghé 1–3 zone rồi quyết định mua, không mô phỏng từng bước đi chi tiết — đủ cho replay và số liệu, tránh dựng full physics-step cho PoC
+- Windows.
+- Node.js 22 trở lên.
+- Không cần cài npm package.
 
-**Chưa làm (Phần D, không nằm trên đường găng):**
-- Trích λ(t) từ video → đang dùng đường cong sin mặc định
-- Trích gen gốc từ video qua homography + FER → đang dùng gen gán tay
-- NPC không tiến hoá qua nhiều thế hệ
+### Khởi động
 
----
+Nhấp đúp:
 
-## Bug đã bắt được khi tự test (giữ lại để tham khảo)
+```text
+build\run.bat
+```
 
-1. **`generate_population(gen_goc=[])` không báo lỗi** — dùng `gen_goc or GEN_GOC_MAC_DINH` khiến list rỗng bị coi như "không truyền". Sửa: kiểm tra `is None` tường minh.
-2. **`save_run()` ghi đè file** — timestamp chỉ chính xác tới giây, mà engine chạy 200 NPC chỉ mất ~0.08s, nên 2 lần chạy liên tiếp trùng tên file. Sửa: thêm suffix ngẫu nhiên. Đã có test `test_luu_nhieu_run_lien_tiep_khong_ghi_de` để không tái diễn.
+Launcher sẽ khởi động backend tại `http://127.0.0.1:8765` và mở web bằng trình duyệt mặc định.
 
-## Lưu ý khi chạy test
+## Cấu trúc chính
 
-`AppTest.from_file("pages/5_Lich_su.py")` sẽ báo `KeyError: 'url_pathname'` ở `st.page_link`/`st.switch_page` **khi `data/runs/` rỗng**. Đây **không phải bug**: `PagesManager` của Streamlit định vị thư mục `pages/` theo `main_script_path`, nên khi test cô lập 1 trang con, nó tìm nhầm `pages/pages/`. Chạy thật qua `streamlit run app/Home.py` không gặp lỗi này.
+```text
+build/
+├── run.bat
+├── backend/
+│   ├── server.mjs
+│   ├── routes/api-router.mjs
+│   └── storage/project-store.mjs
+├── web/
+│   ├── index.html
+│   ├── app.js
+│   ├── live-engine.js
+│   ├── layout-validation.js
+│   └── sim-result.js
+├── runtime/
+├── tests/
+└── docs/
+```
+
+- `web/live-engine.js`: simulation core độc lập với DOM.
+- `web/app.js`: editor, Canvas renderer và live controls.
+- `web/sim-result.js`: schema dùng chung cho export/history.
+- `backend/routes`: quy tắc HTTP API.
+- `backend/storage`: lưu project và history.
+- `runtime`: layout, catalog và dữ liệu sinh ra khi chạy.
+
+## Input và output
+
+### Input
+
+- Video khách hàng đã được xử lý offline.
+- Layout gồm wall, shelf, entrance và checkout.
+- Catalog và ánh xạ sản phẩm vào shelf.
+- Random seed và các hằng số simulation.
+- Quần thể NPC từ GA hoặc dữ liệu nhập tay.
+
+### Output
+
+- Doanh thu, conversion và số giao dịch.
+- Main purchase và impulse purchase.
+- Dwell time theo shelf.
+- Decision trace và utility breakdown.
+- Trajectory cảm xúc/chuyển động để replay.
+- Lịch sử các lần chạy để so sánh kịch bản.
+
+## API chính
+
+- `GET /health`
+- `GET /api/project`
+- `POST /api/project`
+- `GET /api/history`
+- `POST /api/history`
+- `GET /api/history/:id`
+
+## Kiểm thử
+
+Từ thư mục `build`:
+
+```powershell
+node tests/live_engine.test.mjs
+node tests/pathfinding_rules.test.mjs
+node tests/emotion_need_dynamics.test.mjs
+node tests/utility_attenuation.test.mjs
+node tests/weighted_random_choice.test.mjs
+node tests/phantom_need.test.mjs
+node tests/spawn_curve.test.mjs
+node tests/layout_validation.test.mjs
+node tests/population_generation.test.mjs
+node tests/sim_result_history.test.mjs
+node tests/benchmark.mjs
+```
+
+Benchmark hiện tại với 200 NPC × 3.600 ticks, bao gồm trajectory capture, thấp hơn một giây trên máy phát triển.
+
+## Team
+
+- **Phan Trung Kiên** — Core simulation.
+- **Lê Bảo Khang** — Genetic Algorithm và NPC population.
+- **Trần Đăng Khôi** — Trích xuất đặc trưng từ video thực tế.
+- **Phạm Tài Nguyên** — UI/UX.
+- **Đặng Hải Đăng** — UI/UX.
+
+## Phạm vi và giới hạn
+
+- Video được xử lý offline, không phân tích camera theo thời gian thực.
+- Các kết quả phụ thuộc vào chất lượng input và giả định hành vi.
+- Một số hằng số hiện là design constants, chưa phải số đo được hiệu chỉnh từ cửa hàng thật.
+- Simulator không tự thay đổi cửa hàng thật và không thay manager ra quyết định cuối cùng.
+
+## Tài liệu
+
+- [Project overview](build/docs/Project.md)
+- [Kiến trúc simulator](build/docs/ARCHITECTURE.md)
+- [Kế hoạch triển khai](build/docs/PLAN_CODEX.md)
+- [Hướng dẫn riêng cho build](build/README.md)
