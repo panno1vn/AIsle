@@ -43,7 +43,7 @@ Việc thử trực tiếp trong cửa hàng thật tốn thời gian, chi phí 
 
 Nhóm sử dụng **Peak–End Rule** làm một trong những lý thuyết nền tảng để xây dựng AIsle. Trải nghiệm của khách hàng không chỉ phụ thuộc vào giá trị trung bình trong toàn bộ hành trình. Ký ức về một trải nghiệm chịu ảnh hưởng lớn bởi thời điểm cảm xúc mạnh nhất và trạng thái ở cuối hành trình.
 
-![Minh họa Peak–End Rule: ký ức về trải nghiệm chịu ảnh hưởng bởi đỉnh cảm xúc và điểm kết thúc](./pic.jpg)
+![Minh họa Peak–End Rule: ký ức về trải nghiệm chịu ảnh hưởng bởi đỉnh cảm xúc và điểm kết thúc](build/docs/pic.jpg)
 
 Lý thuyết này được chuyển thành định hướng thiết kế sản phẩm như sau:
 

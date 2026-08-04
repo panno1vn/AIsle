@@ -181,7 +181,8 @@ Benchmark hiện tại với 200 NPC × 3.600 ticks, bao gồm trajectory captur
 
 ## Tài liệu
 
-- [Project overview](build/docs/Project.md)
+- [Project overview](Project.md)
+- [Product brief](build/docs/plan.md)
 - [Kiến trúc simulator](build/docs/ARCHITECTURE.md)
 - [Kế hoạch triển khai](build/docs/PLAN_CODEX.md)
 - [Hướng dẫn riêng cho build](build/README.md)
