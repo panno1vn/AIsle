@@ -1,3 +1,11 @@
+## Team: BlackBox AI
+
+- **Phan Trung Kiên** — Core simulation.
+- **Lê Bảo Khang** — Genetic Algorithm và NPC population.
+- **Trần Đăng Khôi** — Trích xuất đặc trưng từ video thực tế.
+- **Phạm Tài Nguyên** — UI/UX.
+- **Đặng Hải Đăng** — UI/UX.
+
 # AIsle — Store Customer Simulation
 
 AIsle là hệ thống mô phỏng hành vi khách hàng trong cửa hàng tiện lợi. Dự án kết hợp dữ liệu quan sát từ video thực tế, ngữ cảnh cửa hàng, quần thể NPC sinh bằng Genetic Algorithm và Utility AI lấy cảm hứng từ *The Sims*.
@@ -163,14 +171,6 @@ node tests/benchmark.mjs
 ```
 
 Benchmark hiện tại với 200 NPC × 3.600 ticks, bao gồm trajectory capture, thấp hơn một giây trên máy phát triển.
-
-## Team
-
-- **Phan Trung Kiên** — Core simulation.
-- **Lê Bảo Khang** — Genetic Algorithm và NPC population.
-- **Trần Đăng Khôi** — Trích xuất đặc trưng từ video thực tế.
-- **Phạm Tài Nguyên** — UI/UX.
-- **Đặng Hải Đăng** — UI/UX.
 
 ## Phạm vi và giới hạn
 
