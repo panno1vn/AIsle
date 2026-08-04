@@ -1,0 +1,145 @@
+#object-list button {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+#object-list button small {
+  margin-left: auto;
+  max-width: 82px;
+  text-align: right;
+  overflow-wrap: anywhere;
+  color: #65758a;
+}
+
+#object-list i {
+  flex: 0 0 10px;
+  margin: 2px 0 0;
+}
+
+.workspace {
+  height: calc(100dvh - 238px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.palette,
+.inspector,
+.stage {
+  min-height: 0;
+}
+
+.stage {
+  overflow: hidden;
+}
+
+#scene {
+  min-height: 0;
+  max-height: calc(100% - 63px);
+}
+
+.outputs {
+  height: 132px;
+  min-height: 0;
+  position: relative;
+  z-index: 4;
+  overflow: hidden;
+}
+
+.event-log {
+  min-width: 0;
+  overflow: hidden;
+}
+
+#event-log-list {
+  height: 84px;
+  overflow-y: auto;
+  font: 400 8px/1.55 var(--mono);
+}
+
+#event-log-list div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+
+#event-log-list b {
+  color: var(--blue);
+  margin-right: 6px;
+}
+
+#parameter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px 14px;
+  padding: 18px 20px;
+  overflow-y: auto;
+}
+
+#parameter-grid fieldset {
+  border: 1px solid var(--line);
+  padding: 10px;
+}
+
+#parameter-grid legend {
+  color: var(--blue);
+  font: 600 8px var(--mono);
+  letter-spacing: .08em;
+}
+
+#parameter-grid label {
+  margin: 7px 0;
+}
+
+#parameter-grid input {
+  font-family: var(--mono);
+}
+
+.metrics small {
+  display: block;
+  margin-top: 5px;
+  color: var(--dim);
+  font-size: 8px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3a4a5f transparent;
+}
+
+*::-webkit-scrollbar { width: 7px; height: 7px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #3a4a5f; border-radius: 8px; }
+
+body.outputs-collapsed .workspace {
+  height: calc(100dvh - 138px);
+}
+
+body.outputs-collapsed .outputs {
+  height: 32px;
+}
+
+body.outputs-collapsed .metrics,
+body.outputs-collapsed #event-log-list {
+  display: none;
+}
+
+body.outputs-collapsed .event-log {
+  grid-column: 1 / -1;
+  padding: 9px 16px;
+  border-left: 0;
+}
+
+@media (max-height: 760px) {
+  .workspace { height: calc(100dvh - 194px); }
+  .outputs { height: 88px; }
+  .metrics > div { padding: 10px 14px; }
+  .metrics b { font-size: 15px; margin-top: 5px; }
+  .metrics small { margin-top: 3px; }
+  #event-log-list { height: 48px; }
+  body.outputs-collapsed .workspace { height: calc(100dvh - 138px); }
+}
+
+@media (max-width: 900px) {
+  #parameter-grid { grid-template-columns: repeat(2, 1fr); }
+}

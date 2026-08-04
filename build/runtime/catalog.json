@@ -1,0 +1,86 @@
+[
+  {
+    "id": "p001",
+    "name": "Nuoc khoang",
+    "category": "beverage",
+    "shelf": "s1",
+    "price": 10000
+  },
+  {
+    "id": "p002",
+    "name": "Tra xanh",
+    "category": "beverage",
+    "shelf": "s1",
+    "price": 12000
+  },
+  {
+    "id": "p003",
+    "name": "Mi ly",
+    "category": "instant-food",
+    "shelf": "s2",
+    "price": 15000
+  },
+  {
+    "id": "p004",
+    "name": "Com nam",
+    "category": "instant-food",
+    "shelf": "s2",
+    "price": 22000
+  },
+  {
+    "id": "p005",
+    "name": "Snack khoai tay",
+    "category": "snack",
+    "shelf": "s3",
+    "price": 18000
+  },
+  {
+    "id": "p006",
+    "name": "Banh quy",
+    "category": "snack",
+    "shelf": "s3",
+    "price": 24000
+  },
+  {
+    "id": "p007",
+    "name": "Khan giay",
+    "category": "personal-care",
+    "shelf": "s4",
+    "price": 18000
+  },
+  {
+    "id": "p008",
+    "name": "Nuoc rua tay",
+    "category": "personal-care",
+    "shelf": "s4",
+    "price": 32000
+  },
+  {
+    "id": "p009",
+    "name": "Nuoc rua chen",
+    "category": "household",
+    "shelf": "s5",
+    "price": 38000
+  },
+  {
+    "id": "p010",
+    "name": "Tui rac",
+    "category": "household",
+    "shelf": "s5",
+    "price": 26000
+  },
+  {
+    "id": "p011",
+    "name": "Keo gum",
+    "category": "candy",
+    "shelf": "s6",
+    "price": 8000
+  },
+  {
+    "id": "p012",
+    "name": "Socola thanh",
+    "category": "candy",
+    "shelf": "s6",
+    "price": 16000
+  }
+]
