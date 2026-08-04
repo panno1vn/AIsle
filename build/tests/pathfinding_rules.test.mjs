@@ -12,6 +12,7 @@ const sealedLayout = {
   shelves: [],
   entrance: {x: 1, y: 2},
   checkout: {x: 1.5, y: 2},
+  spawnRateCurve: [{minute: 0, rate: 600}],
 };
 const sealedGrid = new PathGrid(sealedLayout, params);
 assert.equal(sealedGrid.path({x: 1, y: 2}, {x: 5, y: 2}), null, 'a sealed wall must never fall back to a straight path');

@@ -36,3 +36,17 @@ The simulation follows the object-centric idea used by The Sims: shelves adverti
 3. Smoothed path segments must remain walkable from end to end.
 4. Runtime movement and crowd separation re-check collision.
 5. Failed routes trigger bounded replanning, then shelf abandonment and exit routing.
+
+## Spawn process
+
+`layout.spawnRateCurve` is a list of `{minute, rate}` points, where `rate` is measured in arrivals per minute. The engine linearly interpolates the curve and samples a seeded non-homogeneous Poisson process with thinning. A fixed simulation seed therefore reproduces the same arrivals. Legacy layouts without a curve use the previous sine-shaped peak as a rate profile, normalized to the requested population size.
+
+The shipped default curve is a design constant for the proof of concept, not a rate measured from a real store. NPCs with no accepted arrival before the configured duration remain unspawned, which is the expected behavior when a layout's rate curve has less capacity than the supplied population.
+
+## Layout validation
+
+Saving requires both `entrance` and `checkout` points. Shelf reachability is checked from the entrance with the same `PathGrid` and shelf access-point rules as the live engine. Missing required markers returns HTTP 400 and blocks persistence; unreachable shelves are returned as warnings and do not block saving.
+
+## Performance baseline
+
+Task 1.4 benchmark command: `node tests/benchmark.mjs`. On 2026-08-04 with Node.js 24 on the development Windows machine, two runs of 200 NPCs over 3,600 one-second ticks completed in **562-661 ms** (**0.156-0.184 ms/tick**), with all 200 NPCs spawned. This is comfortably below the 3-5 second optimization threshold, so the current pairwise separation and uncached shelf path evaluation remain in place. Spatial hashing and path caching should only be introduced after a future benchmark crosses that threshold, to avoid cache invalidation risk when layouts change.

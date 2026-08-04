@@ -1,3 +1,5 @@
+import {validateLayout} from '../../web/layout-validation.js';
+
 async function readBody(request, maxBytes = 12_000_000) {
   const chunks = [];
   let size = 0;
@@ -36,11 +38,13 @@ export function createApiRouter(store) {
     }
     if (url.pathname === '/api/project' && request.method === 'POST') {
       const project = await readBody(request);
-      if (!project.layout || !Array.isArray(project.layout.walls) || !Array.isArray(project.layout.shelves)) {
-        throw Object.assign(new Error('Invalid project layout'), {status: 400});
+      const validation = validateLayout(project.layout);
+      if (!validation.valid) {
+        sendJson(response, {error: validation.errors.join(' '), errors: validation.errors}, 400);
+        return true;
       }
       await store.saveProject(project);
-      sendJson(response, {ok: true});
+      sendJson(response, {ok: true, warnings: validation.warnings, unreachableShelfIds: validation.unreachableShelfIds});
       return true;
     }
     if (url.pathname === '/api/live-result' && request.method === 'POST') {

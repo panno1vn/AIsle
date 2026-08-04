@@ -31,6 +31,48 @@ const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const sigmoid = value => 1 / (1 + Math.exp(-value));
 
+function interpolateSpawnRate(curve, minute) {
+  if (minute <= curve[0].minute) return curve[0].rate;
+  for (let index = 1; index < curve.length; index++) {
+    const right = curve[index];
+    if (minute > right.minute) continue;
+    const left = curve[index - 1], span = right.minute - left.minute;
+    return span ? left.rate + (right.rate - left.rate) * (minute - left.minute) / span : right.rate;
+  }
+  return curve.at(-1).rate;
+}
+
+function normalizeSpawnCurve(curve) {
+  if (!Array.isArray(curve)) return [];
+  const points = curve
+    .map(point => ({minute: Number(point?.minute), rate: Number(point?.rate)}))
+    .filter(point => Number.isFinite(point.minute) && point.minute >= 0 && Number.isFinite(point.rate) && point.rate >= 0)
+    .sort((a, b) => a.minute - b.minute);
+  const unique = [];
+  for (const point of points) {
+    if (unique.at(-1)?.minute === point.minute) unique[unique.length - 1] = point;
+    else unique.push(point);
+  }
+  return unique;
+}
+
+/** Sample a non-homogeneous Poisson process. Curve rates are arrivals/minute. */
+export function samplePoissonSpawnTimes({curve, durationSeconds, rng, maxCount = Infinity}) {
+  const points = normalizeSpawnCurve(curve), duration = Math.max(0, Number(durationSeconds) || 0);
+  if (!points.length || !duration || maxCount <= 0) return [];
+  const maxRatePerSecond = Math.max(...points.map(point => point.rate)) / 60;
+  if (!maxRatePerSecond) return [];
+  const result = [];
+  let time = 0;
+  while (result.length < maxCount) {
+    time += -Math.log(Math.max(Number.EPSILON, 1 - rng())) / maxRatePerSecond;
+    if (time >= duration) break;
+    const rate = interpolateSpawnRate(points, time / 60) / 60;
+    if (rng() * maxRatePerSecond <= rate) result.push(time);
+  }
+  return result;
+}
+
 export function createRng(seed = 42) {
   let state = (Number(seed) || 42) >>> 0;
   const random = () => {
@@ -170,7 +212,7 @@ export class PathGrid {
   pathLength(path){let total=0;for(let i=1;i<path.length;i++)total+=distance(path[i-1],path[i]);return total}
 }
 
-function shelfAccessPaths(shelf, from, layout, grid) {
+export function shelfAccessPaths(shelf, from, layout, grid) {
   const gap=Math.max(.42,grid.cell*2);
   return [
     {x:shelf.x-gap,y:shelf.y+shelf.h/2},
@@ -192,15 +234,16 @@ export class LiveSimulation {
   }
   makeSpawnTimes(count){
     if(!count)return[];
-    // Stratified arrivals retain the peak while avoiding long blank gaps.
-    const interval=this.duration/count,result=[];
-    for(let i=0;i<count;i++){
-      const phase=i/Math.max(1,count-1);
-      const peakShift=this.parameters.spawnPeakStrength*Math.sin(phase*Math.PI)*interval*.55;
-      const jitter=(this.rng()-.5)*interval*.7;
-      result.push(i===0?0:clamp(i*interval-peakShift+jitter,0,this.duration-.01));
+    let curve=normalizeSpawnCurve(this.layout.spawnRateCurve);
+    if(!curve.length){
+      // Backward-compatible fallback: preserve the old sine-shaped peak while
+      // normalizing its expected arrivals to the requested population size.
+      const strength=clamp(this.parameters.spawnPeakStrength,0,.95),meanRate=count/(this.duration/60),normalizer=1+strength*2/Math.PI;
+      curve=Array.from({length:25},(_,index)=>{const phase=index/24;return{minute:phase*this.duration/60,rate:meanRate*(1+strength*Math.sin(phase*Math.PI))/normalizer}});
     }
-    return result.sort((a,b)=>a-b);
+    const result=samplePoissonSpawnTimes({curve,durationSeconds:this.duration,rng:this.rng,maxCount:count});
+    while(result.length<count)result.push(Infinity);
+    return result;
   }
   emit(agent,type,message,data={}){const item={time:this.time,npc:agent?.id||'system',type,message,...data};this.events.push(item);if(this.events.length>600)this.events.shift();return item}
   step(dt=this.parameters.tickSeconds){if(this.completed)return;dt=clamp(dt,.01,2);this.time=Math.min(this.duration,this.time+dt);const active=[];for(const agent of this.agents){if(agent.finished||this.time<agent.spawn)continue;if(agent.status==='WAITING'){agent.status='DECIDING';this.stats.spawned++;this.emit(agent,'spawn',`spawned with target ${agent.target||'browse-only'}`)}agent.need=clamp(agent.need+agent.needGrowth*dt/60*this.parameters.needTimeScale,0,1);agent.explore=clamp(agent.explore+agent.exploreGrowth*dt/60*this.parameters.needTimeScale,0,1);this.updateAgent(agent,dt);if(!agent.finished)active.push(agent)}this.separate(active);if(this.time>=this.duration||this.agents.every(a=>a.finished)){this.completed=true;this.emit(null,'complete',`simulation complete at ${this.time.toFixed(1)}s`)} }

@@ -51,4 +51,8 @@ Các hằng số `stuckTimeout`, `maxReplans`, kích thước grid, obstacle mar
 ```powershell
 node tests/live_engine.test.mjs
 node tests/pathfinding_rules.test.mjs
+node tests/spawn_curve.test.mjs
+node tests/layout_validation.test.mjs
+node tests/population_generation.test.mjs
+node tests/benchmark.mjs
 ```
