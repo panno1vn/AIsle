@@ -32,6 +32,19 @@ Trong simulator:
 - Chủ cửa hàng muốn kiểm tra phương án bố trí trước khi đầu tư triển khai.
 - Nhóm phân tích hành vi khách hàng và hiệu quả kinh doanh.
 
+### Chân dung người dùng chính
+
+Người dùng trọng tâm của AIsle là quản lý hoặc chủ cửa hàng chịu trách nhiệm về layout, danh mục hàng hóa, ưu đãi và hiệu quả kinh doanh. Họ cần thử nhiều phương án với chi phí thấp, đồng thời phải nhìn thấy đường đi và quyết định của NPC để hiểu vì sao một kịch bản tạo ra kết quả cụ thể.
+
+Các nhu cầu chính gồm:
+
+- So sánh layout và chính sách trước khi áp dụng tại cửa hàng thật.
+- Quan sát live simulation, replay, heatmap và decision trace thay vì chỉ nhận KPI cuối.
+- Nhập thủ công hằng số, chỉ số và NPC cho các ca kiểm thử có kiểm soát.
+- Đánh giá doanh thu cùng trải nghiệm khách hàng và khả năng quay lại.
+
+Xem tài liệu [chân dung người dùng và kịch bản sử dụng](build/docs/personal.md) để biết đầy đủ mục tiêu, pain points, job-to-be-done và tiêu chí thành công của sản phẩm.
+
 ## Bài toán
 
 Việc thử trực tiếp một layout hoặc chính sách mới trong cửa hàng thật tốn thời gian, chi phí và có thể ảnh hưởng doanh thu. AIsle cung cấp một phòng thí nghiệm mô phỏng để trả lời các câu hỏi:
@@ -183,6 +196,7 @@ Benchmark hiện tại với 200 NPC × 3.600 ticks, bao gồm trajectory captur
 
 - [Project overview](Project.md)
 - [Product brief](build/docs/plan.md)
+- [Chân dung người dùng](build/docs/personal.md)
 - [Kiến trúc simulator](build/docs/ARCHITECTURE.md)
 - [Kế hoạch triển khai](build/docs/PLAN_CODEX.md)
 - [Hướng dẫn riêng cho build](build/README.md)
