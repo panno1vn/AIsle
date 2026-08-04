@@ -16,6 +16,17 @@
   margin: 2px 0 0;
 }
 
+#object-list i.wall-swatch {
+  height: 3px;
+  margin-top: 6px;
+  background: #a5b0bd;
+}
+
+.object-hint {
+  color: var(--dim);
+  font: 400 9px/1.5 var(--mono);
+}
+
 .workspace {
   height: calc(100dvh - 238px);
   min-height: 0;

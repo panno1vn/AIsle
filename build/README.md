@@ -1,56 +1,54 @@
-# AIsle Live Simulation Studio — App + Web
+# AIsle Store Simulator
 
-Runtime chính đã chuyển sang JavaScript live simulation engine + Canvas 2D. Desktop mở bằng Microsoft Edge App Mode; web chạy cùng UI và cùng engine. Python/Tkinter được giữ lại dưới dạng legacy prototype, không còn là luồng chạy mặc định.
+Ứng dụng mô phỏng cửa hàng chạy bằng JavaScript live engine và Canvas 2D. Không cần cài npm package.
 
-## Chạy desktop app
+## Chạy web
 
-Yêu cầu Node.js 22+ và Microsoft Edge. Không cần cài npm package.
+Yêu cầu Node.js 22+. Nhấp đúp duy nhất:
 
-```powershell
-cd build
-.\run.ps1
+```text
+run.bat
 ```
 
-Hoặc nhấp đúp `run.bat`.
+Launcher khởi động backend ở `http://127.0.0.1:8765` và mở trình duyệt mặc định. Nếu backend đã chạy, launcher chỉ mở lại trang web.
 
-`run.ps1` khởi động Node server nền rồi mở cửa sổ desktop không có browser chrome bằng Edge App Mode.
+## Bố cục thư mục
 
-## Chạy bản web
-
-Bản web dùng đúng `web/live-engine.js` của desktop app, không có simulation engine thứ hai:
-
-```powershell
-cd build
-.\run_web.ps1
+```text
+build/
+├── run.bat                    # launcher duy nhất
+├── backend/
+│   ├── server.mjs             # HTTP host và static pages
+│   ├── routes/api-router.mjs  # quy tắc endpoint API
+│   └── storage/project-store.mjs
+├── web/
+│   ├── index.html             # page hiện tại; có thể thêm page mới tại đây
+│   ├── app.js                 # editor và Canvas UI
+│   ├── live-engine.js         # simulation core, không phụ thuộc DOM
+│   ├── project-defaults.js
+│   ├── styles.css
+│   └── overrides.css
+├── runtime/                   # layout/catalog và output khi chạy
+├── tests/                     # Node tests
+└── docs/ARCHITECTURE.md
 ```
 
-Hoặc nhấp đúp `run_web.bat`, sau đó mở `http://127.0.0.1:8765`.
+Backend tách router khỏi storage. Khi thêm page, đặt HTML/JS/CSS trong `web`; khi thêm API, khai báo route trong `backend/routes/api-router.mjs` và nghiệp vụ lưu trữ trong `backend/storage`.
 
-## Phạm vi đã triển khai
+## Quy tắc NPC
 
-- Layout Designer native canvas với 4 công cụ: tường, kệ, lối vào, quầy thu ngân; snap lưới 0,25 m, số đo và kéo-thả.
-- Catalog dạng bảng, form thêm/sửa/xóa, import CSV, ánh xạ sản phẩm vào kệ.
-- Sinh 150–200 NPC bằng crossover + bounded mutation từ 6 seed genome.
-- Chế độ Manual NPC Input: nhập/dán CSV cho từng NPC gồm need, emotion, movement và target category; phù hợp chạy test có kiểm soát.
-- Phân bổ `target_category`: 80% catalog, 10% thừa hưởng, 6% nhu cầu ma, 4% không có ý định mua.
-- Spawn theo đường cong λ(t), utility chọn kệ, A* grid có làm mượt đường, biến đổi cảm xúc, mua chính và impulse cross-sell.
-- Replay có tua/phát/tốc độ, heatmap dwell time, doanh thu tích lũy, phân bố nguồn nhu cầu.
-- Tự lưu layout/catalog bằng JSON; purchase log và lịch sử bằng SQLite; so sánh 2 lần chạy; không chấm điểm hoặc đề xuất layout.
-- Desktop và web cùng đọc/ghi `build/runtime` và cùng chạy `web/live-engine.js`.
-- Một lần bấm `Run live` vừa bắt đầu physics tick vừa render NPC; không còn bước “tính xong rồi mới replay”.
-- `Step`, `Pause`, `Reset`, deterministic seek và trail giúp kiểm tra quá trình dẫn tới kết quả.
-- Chọn NPC để xem need, emotion, action state và utility breakdown.
-- Parameter Lab cho nhập tay toàn bộ hệ số utility, purchase sigmoid, impulse, spawn, tick, pathfinding và collision.
+- Shelf quảng bá category, valence và sản phẩm; NPC chấm utility theo nhu cầu, khám phá, cảm xúc và chi phí đường đi.
+- Chỉ shelf có access point mà A* thực sự đi tới được mới được đưa vào quyết định.
+- Wall và shelf là hard obstacle. Không có fallback đường thẳng xuyên vật cản.
+- Mỗi bước di chuyển và crowd separation đều kiểm tra segment walkable.
+- NPC bị kẹt sẽ tìm đường lại; quá số lần cho phép thì bỏ shelf và quay về entrance.
+- Nếu mọi shelf đều không tới được, NPC ghi event `unreachable` và rời cửa hàng.
 
-## Ranh giới
+Các hằng số `stuckTimeout`, `maxReplans`, kích thước grid, obstacle margin và utility có thể chỉnh trong Parameter Lab.
 
-Pipeline YOLOv8 → Homography → DeepFace là phần offline theo tài liệu và không nằm trong runtime simulator. Trajectory compact được lưu thành JSON trong `build/runtime`; SQLite lưu purchase log và lịch sử. Đây là lựa chọn để app chạy ngay bằng Python chuẩn, không cần PyArrow.
-
-Python desktop cũ vẫn có thể chạy bằng `python desktop_app.py` để đối chiếu, nhưng không phải implementation chính.
-
-## Kiểm thử
+## Test
 
 ```powershell
-python -m unittest discover -s tests -p "test_*.py"
 node tests/live_engine.test.mjs
+node tests/pathfinding_rules.test.mjs
 ```
