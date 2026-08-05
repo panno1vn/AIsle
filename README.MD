@@ -6,6 +6,11 @@
 - **Phạm Tài Nguyên** — UI/UX.
 - **Đặng Hải Đăng** — UI/UX.
 
+## Các module
+
+- [module-1](https://github.com/panno1vn/KADA-BLACK_BOX_AI-AIsle/tree/module-1)
+- [module-4](https://github.com/panno1vn/KADA-BLACK_BOX_AI-AIsle/tree/module-4)
+
 # AIsle — Store Customer Simulation
 
 AIsle là hệ thống mô phỏng hành vi khách hàng trong cửa hàng tiện lợi. Dự án kết hợp dữ liệu quan sát từ video thực tế, ngữ cảnh cửa hàng, quần thể NPC sinh bằng Genetic Algorithm và Utility AI lấy cảm hứng từ *The Sims*.
