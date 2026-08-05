@@ -9,7 +9,7 @@
 ## Các module
 
 - [module-1](https://github.com/panno1vn/KADA-BLACK_BOX_AI-AIsle/tree/module-1)
-- [module-4](https://github.com/panno1vn/KADA-BLACK_BOX_AI-AIsle/tree/module-4)
+- [module-3](https://github.com/panno1vn/KADA-BLACK_BOX_AI-AIsle/tree/module-3)
 
 # AIsle — Store Customer Simulation
 
