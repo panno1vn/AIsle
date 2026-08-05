@@ -21,7 +21,7 @@ Manager có thể thử nghiệm layout, vị trí kệ hàng, catalog và chín
 
 Nhóm sử dụng **Peak–End Rule** làm một trong những lý thuyết nền tảng để thiết kế AIsle. Ký ức của khách hàng về một trải nghiệm chịu ảnh hưởng lớn bởi thời điểm cảm xúc mạnh nhất và trạng thái ở cuối hành trình.
 
-![Peak–End Rule — lý thuyết nền tảng cho mô hình trải nghiệm khách hàng của AIsle](build/docs/pic.jpg)
+![Peak–End Rule — lý thuyết nền tảng cho mô hình trải nghiệm khách hàng của AIsle](docs/pic.jpg)
 
 Trong simulator:
 
